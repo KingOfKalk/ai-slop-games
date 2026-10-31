@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>El Clásico Bingo</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #121212;
+    --text: #F2F2F2;
+    --muted: #A0A0A0;
+    --red: #FF3B5C;
+    --yellow: #FDE100;
+    --field: #1E1E1E;
+    --field-border: #555555;
+    --radius: 8px;
+    --pad-t: max(16px, env(safe-area-inset-top));
+    --pad-r: max(16px, env(safe-area-inset-right));
+    --pad-b: max(16px, env(safe-area-inset-bottom));
+    --pad-l: max(16px, env(safe-area-inset-left));
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    height: 100vh;
+    height: 100dvh;
+    padding: var(--pad-t) var(--pad-r) var(--pad-b) var(--pad-l);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "head" "board" "foot";
+    gap: clamp(12px, 2.5vh, 24px);
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  header { grid-area: head; padding-right: 56px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(26px, min(8vw, 6vh), 56px);
+    font-weight: 700;
+    line-height: 1;
+  }
+  h1 span, .yellow { color: var(--yellow); }
+  .teams {
+    margin: 6px 0 0;
+    font-size: clamp(15px, min(4.4vw, 3vh), 28px);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .red { color: var(--red); }
+  .vs { color: var(--muted); font-weight: 400; }
+
+  .board-wrap {
+    grid-area: board;
+    min-height: 0;
+    container-type: size;
+    display: grid;
+    place-items: center;
+  }
+  .board {
+    width: min(100cqw, 100cqh);
+    aspect-ratio: 1;
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+    gap: clamp(4px, 1.6cqi, 10px);
+  }
+  .cell {
+    appearance: none;
+    margin: 0;
+    padding: 2px;
+    min-width: 0;
+    min-height: 0;
+    border-radius: var(--radius);
+    border: 2px solid var(--field-border);
+    background: var(--field);
+    color: var(--text);
+    font: inherit;
+    font-weight: 700;
+    font-size: clamp(10px, 3.6cqi, 22px);
+    line-height: 1.15;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background-color .12s, border-color .12s, color .12s, transform .08s;
+  }
+  .cell:active:not(:disabled) { transform: scale(.94); }
+  .cell[aria-pressed="true"] {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: var(--bg);
+  }
+  .cell.in-line { box-shadow: 0 0 0 3px var(--red); }
+  .cell:disabled { cursor: default; opacity: 1; }
+  .cell:focus-visible, .reset:focus-visible {
+    outline: 3px solid var(--text);
+    outline-offset: 2px;
+  }
+
+  footer { grid-area: foot; display: grid; gap: clamp(8px, 1.4vh, 12px); }
+  .rule {
+    margin: 0;
+    font-size: clamp(13px, min(3.8vw, 2.2vh), 22px);
+    line-height: 1.25;
+    color: var(--muted);
+  }
+  .rule strong { color: var(--text); }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .card {
+    border: 2px solid;
+    border-radius: var(--radius);
+    padding: clamp(8px, 1.4vh, 16px) clamp(10px, 2.5vw, 20px);
+  }
+  .card.red-b { border-color: var(--red); }
+  .card.yellow-b { border-color: var(--yellow); }
+  .card p { margin: 0; }
+  .card .k { font-size: clamp(12px, min(3.4vw, 2vh), 20px); color: var(--muted); }
+  .card .v { font-size: clamp(18px, min(5.6vw, 3.4vh), 34px); font-weight: 700; line-height: 1.2; }
+
+  .reset {
+    position: fixed;
+    top: var(--pad-t);
+    right: var(--pad-r);
+    z-index: 3;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 2px solid var(--field-border);
+    border-radius: var(--radius);
+    background: var(--field);
+    color: var(--text);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .reset:hover { border-color: var(--muted); }
+  .reset svg { width: 22px; height: 22px; }
+
+  #fireworks {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Wide / landscape: board left, info right */
+  @media (min-aspect-ratio: 5/4) {
+    main {
+      max-width: none;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-areas: "board head" "board foot";
+      column-gap: clamp(16px, 3vw, 48px);
+    }
+    .board-wrap { container-type: normal; place-items: start; }
+    .board { width: calc(100dvh - var(--pad-t) - var(--pad-b)); max-width: 60vw; }
+    footer { align-self: end; }
+    h1 { font-size: clamp(24px, min(4.6vw, 9vh), 64px); }
+    .teams { font-size: clamp(14px, min(2.6vw, 5vh), 32px); }
+    .rule { font-size: clamp(12px, min(2vw, 4vh), 22px); }
+    .card .k { font-size: clamp(11px, min(1.8vw, 3.4vh), 20px); }
+    .card .v { font-size: clamp(16px, min(3vw, 6vh), 36px); }
+    .card { padding: clamp(6px, 2vh, 16px) clamp(10px, 1.6vw, 20px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cell { transition: none; }
+    .cell:active:not(:disabled) { transform: none; }
+  }
+</style>
+</head>
+<body data-bingos="0">
+<main>
+  <header>
+    <h1>El Clásico <span>Bingo</span></h1>
+    <p class="teams"><span class="red">FC Bayern München</span> <span class="vs">vs.</span> <span class="yellow">BVB</span></p>
+  </header>
+
+  <div class="board-wrap">
+    <div class="board" id="board" role="group" aria-label="Bingo-Feld"></div>
+  </div>
+
+  <footer>
+    <p class="rule">Treffer = jedes Mal, wenn jemand <strong>"El Clásico"</strong> sagt</p>
+    <div class="cards">
+      <div class="card red-b"><p class="k">Bei jedem Treffer</p><p class="v">1 Kurzer</p></div>
+      <div class="card yellow-b"><p class="k">Bei einem Bingo</p><p class="v">5 Kurze</p></div>
+    </div>
+  </footer>
+</main>
+
+<button class="reset" id="reset" type="button" aria-label="Spiel zurücksetzen" title="Spiel zurücksetzen">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 12a9 9 0 1 0 3-6.7"/>
+    <path d="M3 3v6h6"/>
+  </svg>
+</button>
+
+<canvas id="fireworks" aria-hidden="true"></canvas>
+
+<script>
+(() => {
+  'use strict';
+
+  const KEY = 'el-clasico-bingo:v1';
+  const SIZE = 5;
+  const CENTER = 12;
+
+  const LINES = (() => {
+    const lines = [];
+    for (let r = 0; r < SIZE; r++) lines.push([0, 1, 2, 3, 4].map((c) => r * SIZE + c));
+    for (let c = 0; c < SIZE; c++) lines.push([0, 1, 2, 3, 4].map((r) => r * SIZE + c));
+    lines.push([0, 6, 12, 18, 24]);
+    lines.push([4, 8, 12, 16, 20]);
+    return lines;
+  })();
+
+  const freshBoard = () => Array.from({ length: SIZE * SIZE }, (_, i) => i === CENTER);
+
+  function load() {
+    try {
+      const data = JSON.parse(localStorage.getItem(KEY));
+      if (Array.isArray(data) && data.length === SIZE * SIZE && data.every((v) => typeof v === 'boolean')) {
+        data[CENTER] = true;
+        return data;
+      }
+    } catch (_) { /* storage unavailable or corrupt */ }
+    return freshBoard();
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (_) { /* not persisted */ }
+  }
+
+  const completedLines = (m) => LINES.map((l, i) => (l.every((c) => m[c]) ? i : -1)).filter((i) => i >= 0);
+
+  const boardEl = document.getElementById('board');
+  const cells = [];
+  let marks = load();
+  let done = new Set(completedLines(marks));
+
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cell';
+    b.dataset.index = String(i);
+    b.innerHTML = '<span>El</span><span>Clásico</span>';
+    if (i === CENTER) {
+      b.disabled = true;
+      b.setAttribute('aria-label', 'El Clásico, Freifeld');
+    }
+    b.addEventListener('click', () => toggle(i));
+    boardEl.appendChild(b);
+    cells.push(b);
+  }
+
+  function render() {
+    const inLine = new Set();
+    done.forEach((li) => LINES[li].forEach((c) => inLine.add(c)));
+    cells.forEach((b, i) => {
+      b.setAttribute('aria-pressed', String(marks[i]));
+      b.classList.toggle('in-line', inLine.has(i));
+    });
+    document.body.dataset.bingos = String(done.size);
+  }
+
+  function toggle(i) {
+    if (i === CENTER) return;
+    marks[i] = !marks[i];
+    const now = completedLines(marks);
+    const fresh = now.filter((li) => !done.has(li));
+    done = new Set(now);
+    save();
+    render();
+    if (fresh.length) {
+      document.dispatchEvent(new CustomEvent('bingo', { detail: { lines: fresh } }));
+    }
+  }
+
+  function reset() {
+    marks = freshBoard();
+    done = new Set();
+    save();
+    render();
+    document.dispatchEvent(new CustomEvent('bingoreset'));
+  }
+
+  document.getElementById('reset').addEventListener('click', reset);
+  render();
+})();
+</script>
+</body>
+</html>
