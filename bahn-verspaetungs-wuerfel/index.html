@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>Verspätungswürfel</title>
+<link rel="icon" href="data:,">
+<style>
+*, *::before, *::after { box-sizing: inherit; }
+html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light dark;
+  --bg: #dcdfe0;
+  --ink: #191d24;
+  --muted: #566070;
+  --edge: #bcc2c7;
+  --die-a: #ee2137;
+  --die-b: #b5001a;
+  --amber: #ffc53d;
+  --board: #0e1116;
+  --board-edge: #262c35;
+  --board-label: #8992a0;
+  --tile-top: #272c35;
+  --tile-bot: #151920;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-board: "Arial Narrow", "Roboto Condensed", "Helvetica Neue Condensed", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171c;
+    --ink: #eceef1;
+    --muted: #98a1ad;
+    --edge: #2a303a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171c;
+  --ink: #eceef1;
+  --muted: #98a1ad;
+  --edge: #2a303a;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(16px, 4vh, 40px) 16px 20px;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+[hidden] { display: none !important; }
+
+header { width: 100%; max-width: 680px; }
+h1 {
+  margin: 0;
+  font-family: var(--font-board);
+  font-weight: 700;
+  font-size: clamp(26px, 7vw, 44px);
+  line-height: 1;
+  letter-spacing: .01em;
+}
+.sub { margin: 8px 0 0; color: var(--muted); font-size: 17px; line-height: 1.35; }
+
+.stage {
+  --s: clamp(120px, 22vmin, 180px);
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: calc(var(--s) * 2.1);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  row-gap: calc(var(--s) * .58);
+  padding-top: calc(var(--s) * .12);
+}
+.die-wrap { position: relative; width: var(--s); height: var(--s); }
+.shadow {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + var(--s) * .26);
+  width: calc(var(--s) * .95);
+  height: calc(var(--s) * .17);
+  margin-left: calc(var(--s) * -.475);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.42), rgba(0,0,0,0));
+  pointer-events: none;
+}
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  perspective: calc(var(--s) * 5);
+  cursor: pointer;
+  outline: none;
+  border-radius: calc(var(--s) * .2);
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+.scene:focus-visible { outline: 3px solid var(--amber); outline-offset: calc(var(--s) * .12); }
+.lift, .tilt, .cube { width: 100%; height: 100%; transform-style: preserve-3d; }
+.tilt { transform: rotateX(-26deg) rotateY(-32deg); }
+.cube { position: relative; transition: transform 1.5s cubic-bezier(.16,.66,.22,1); }
+.face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 17%;
+  border-radius: calc(var(--s) * .14);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: linear-gradient(140deg, var(--die-a), var(--die-b));
+  box-shadow:
+    inset 0 0 0 calc(var(--s) * .012) rgba(255,255,255,.2),
+    inset 0 calc(var(--s) * -.05) calc(var(--s) * .09) rgba(0,0,0,.3),
+    inset 0 calc(var(--s) * .03) calc(var(--s) * .06) rgba(255,255,255,.22);
+}
+.f1 { transform: translateZ(calc(var(--s) / 2)); }
+.f6 { transform: rotateY(180deg) translateZ(calc(var(--s) / 2)); }
+.f2 { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); }
+.f5 { transform: rotateY(-90deg) translateZ(calc(var(--s) / 2)); }
+.f3 { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); }
+.f4 { transform: rotateX(-90deg) translateZ(calc(var(--s) / 2)); }
+.cell { display: grid; place-items: center; }
+.pip {
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #e8e5e1 70%);
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,.25), 0 1px 1px rgba(0,0,0,.28);
+}
+.hint { margin: 0; color: var(--muted); font-size: 16px; }
+
+.board {
+  --tw: 19px;
+  width: 100%;
+  max-width: 680px;
+  background: var(--board);
+  border: 1px solid var(--board-edge);
+  border-radius: 12px;
+  padding: 12px 14px 16px;
+  text-align: left;
+  box-shadow: 0 14px 30px -18px rgba(0,0,0,.55);
+}
+.bhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-family: var(--font-board);
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: .03em;
+  color: var(--board-label);
+}
+.bhead #code { color: var(--amber); }
+.grid { display: grid; gap: 3px; width: 100%; }
+.row { display: flex; gap: 3px; }
+.tile {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--tw);
+  height: calc(var(--tw) * 1.55);
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--tile-top) 0 49%, var(--tile-bot) 51% 100%);
+  overflow: hidden;
+}
+.tile::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 1px;
+  background: rgba(0,0,0,.65);
+  box-shadow: 0 1px 0 rgba(255,255,255,.05);
+}
+.ch {
+  display: block;
+  font-family: var(--font-board);
+  font-weight: 600;
+  font-size: calc(var(--tw) * 1);
+  line-height: 1;
+  color: var(--amber);
+  transform-origin: 50% 50%;
+}
+
+.actions { min-height: 48px; margin-top: 16px; display: flex; align-items: center; justify-content: center; }
+.share {
+  font: 500 16px/1 var(--font-body);
+  color: var(--ink);
+  background: transparent;
+  border: 1.5px solid var(--edge);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: 0 20px;
+  cursor: pointer;
+}
+.share:hover { border-color: var(--muted); }
+.share:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.note { margin: 6px 0 0; max-width: 46ch; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cube { transition: none; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Verspätungswürfel</h1>
+  <p class="sub">Welcher Grund ist es heute?</p>
+</header>
+
+<main class="stage">
+  <div class="die-wrap">
+    <div class="shadow" id="shadow"></div>
+    <div class="scene" id="scene" role="button" tabindex="0"
+         aria-label="Würfel. Doppelt tippen oder Enter drücken, um einen Verspätungsgrund zu ziehen.">
+      <div class="lift" id="lift">
+        <div class="tilt">
+          <div class="cube" id="cube"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="hint" id="hint">Doppelklick oder Enter zum Würfeln</p>
+</main>
+
+<section class="board" id="board" aria-label="Anzeigetafel">
+  <div class="bhead"><span>Grund der Verspätung</span><span id="code">RIS-Code -</span></div>
+  <div class="grid" id="grid" aria-hidden="true"></div>
+  <p class="sr" id="live" aria-live="polite"></p>
+</section>
+
+<div class="actions">
+  <button class="share" id="share" type="button" hidden>Grund teilen</button>
+</div>
+<p class="note">Inoffizielles Fanprojekt, nicht von der Deutschen Bahn. Die 66 Gründe stammen aus den RIS-Kundengründen der DB InfraGO (Stand Dezember 2023).</p>
+
+<script>
+(function () {
+  "use strict";
+
+  // [RIS code, official text] from the DB InfraGO list valid since 2023-12-10
+  var DATA = [["00", "keine Verspätungsbegründung"], ["01", "nähere Informationen in Kürze"], ["02", "Polizeieinsatz"], ["03", "Feuerwehreinsatz auf der Strecke"], ["05", "ärztliche Versorgung eines Fahrgastes"], ["06", "unbefugtes Ziehen der Notbremse"], ["07", "unbefugte Personen auf der Strecke"], ["08", "Notarzteinsatz auf der Strecke"], ["09", "Streikauswirkungen"], ["10", "Tiere auf der Strecke"], ["11", "Unwetter"], ["12", "Warten auf ein verspätetes Schiff"], ["13", "Pass- und Zollkontrolle"], ["14", "technischer Defekt am Bahnhof"], ["15", "Beeinträchtigung durch Vandalismus"], ["16", "Entschärfung einer Fliegerbombe"], ["17", "Beschädigung einer Brücke"], ["18", "umgestürzter Baum auf der Strecke"], ["19", "Unfall an einem Bahnübergang"], ["21", "Warten auf Anschlussreisende"], ["22", "Witterungsbedingte Beeinträchtigungen"], ["23", "Betriebsstabilisierung"], ["24", "Verspätung im Ausland"], ["25", "Bereitstellung weiterer Wagen"], ["26", "Abhängen von Wagen"], ["27", "Technische Störung am Bus"], ["28", "Gegenstände auf der Strecke"], ["29", "Ersatzverkehr mit Bus ist eingerichtet"], ["31", "Bauarbeiten"], ["32", "Längere Haltezeit am Bahnhof"], ["33", "Reparatur an der Oberleitung"], ["34", "Reparatur an einem Signal"], ["35", "Streckensperrung"], ["36", "Technische Störung am Zug"], ["37", "Kurzfristiger Fahrzeugausfall"], ["38", "Reparatur an der Strecke"], ["39", "Stau / Hohes Verkehrsaufkommen"], ["40", "defektes Stellwerk"], ["41", "technischer Defekt an einem Bahnübergang"], ["42", "vorübergehend verminderte Geschwindigkeit auf der Strecke"], ["43", "Verspätung eines vorausfahrenden Zuges"], ["44", "Warten auf einen entgegenkommenden Zug"], ["45", "Vorfahrt eines anderen Zuges"], ["47", "verspätete Bereitstellung des Zuges"], ["48", "Verspätung aus vorheriger Fahrt"], ["49", "kurzfristiger Personalausfall"], ["50", "kurzfristige Erkrankung von Personal"], ["51", "verspätetes Personal aus vorheriger Fahrt"], ["52", "Streik"], ["53", "Unwetterauswirkungen"], ["54", "Verfügbarkeit der Gleise derzeit eingeschränkt"], ["55", "technischer Defekt an einem anderen Zug"], ["57", "zusätzlicher Halt zum Ein- und Ausstieg"], ["58", "Umleitung des Zuges"], ["59", "Schnee und Eis"], ["60", "witterungsbedingt verminderte Geschwindigkeit"], ["61", "defekte Tür"], ["62", "behobener technischer Defekt am Zug"], ["63", "technische Untersuchung am Zug"], ["64", "Reparatur an einer Weiche"], ["65", "Erdrutsch"], ["66", "Hochwasser"], ["67", "behördliche Maßnahme"], ["68", "hohes Fahrgastaufkommen verlängert Ein- und Ausstieg"], ["69", "Zug verkehrt mit verminderter Geschwindigkeit"], ["99", "Verzögerungen im Betriebsablauf"]];
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+
+  var scene = document.getElementById("scene");
+  var cube = document.getElementById("cube");
+  var lift = document.getElementById("lift");
+  var shadow = document.getElementById("shadow");
+  var board = document.getElementById("board");
+  var grid = document.getElementById("grid");
+  var codeEl = document.getElementById("code");
+  var liveEl = document.getElementById("live");
+  var shareBtn = document.getElementById("share");
+  var hintEl = document.getElementById("hint");
+
+  if (coarse) hintEl.textContent = "Doppeltippen zum Würfeln";
+
+  // ---- build the die ----
+  var PIPS = { 1: [4], 2: [2, 6], 3: [2, 4, 6], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  for (var n = 1; n <= 6; n++) {
+    var face = document.createElement("div");
+    face.className = "face f" + n;
+    for (var i = 0; i < 9; i++) {
+      var cell = document.createElement("span");
+      cell.className = "cell";
+      if (PIPS[n].indexOf(i) !== -1) {
+        var pip = document.createElement("span");
+        pip.className = "pip";
+        cell.appendChild(pip);
+      }
+      face.appendChild(cell);
+    }
+    cube.appendChild(face);
+  }
+
+  // rotation that brings face n to the front (rotateX, rotateY in degrees)
+  var BASE = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] };
+  var cx = 0, cy = 0;
+  function spinTo(n) {
+    var b = BASE[n];
+    var sx = Math.ceil((cx - b[0]) / 360) + 2 + Math.floor(Math.random() * 2);
+    var sy = Math.ceil((cy - b[1]) / 360) + 2 + Math.floor(Math.random() * 2);
+    cx = b[0] + 360 * sx;
+    cy = b[1] + 360 * sy;
+    cube.style.transform = "rotateX(" + cx + "deg) rotateY(" + cy + "deg)";
+  }
+
+  // ---- draw without immediate repeats, whole list before any repeat ----
+  var bag = [], lastItem = null;
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function draw() {
+    if (!bag.length) {
+      bag = shuffle(DATA.slice());
+      if (lastItem && bag[bag.length - 1] === lastItem) {
+        var t = bag[0]; bag[0] = bag[bag.length - 1]; bag[bag.length - 1] = t;
+      }
+    }
+    lastItem = bag.pop();
+    return lastItem;
+  }
+
+  // ---- split-flap board ----
+  var CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ-/";
+  var tw = 19, cols = 15, timer = null, flapEnd = 0;
+
+  function measure() {
+    var W = grid.clientWidth || 300, gap = 3;
+    tw = Math.min(26, Math.max(15, Math.floor((W - 14 * gap) / 15)));
+    cols = Math.max(8, Math.floor((W + gap) / (tw + gap)));
+    board.style.setProperty("--tw", tw + "px");
+  }
+
+  function wrap(text, width) {
+    var words = text.toUpperCase().split(/\s+/), lines = [], cur = "";
+    for (var i = 0; i < words.length; i++) {
+      var w = words[i];
+      if (!w) continue;
+      if (cur && cur.length + 1 + w.length <= width) { cur += " " + w; continue; }
+      if (cur) { lines.push(cur); cur = ""; }
+      while (w.length > width) { lines.push(w.slice(0, width - 1) + "-"); w = w.slice(width - 1); }
+      cur = w;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  function setCh(el, ch) {
+    el.textContent = ch;
+    if (!reduce && el.animate) {
+      el.animate(
+        [{ transform: "scaleY(1)" }, { transform: "scaleY(.08)", offset: .5 }, { transform: "scaleY(1)" }],
+        { duration: 90 }
+      );
+    }
+  }
+
+  function render(text, code, animate) {
+    clearInterval(timer);
+    codeEl.textContent = "RIS-Code " + code;
+    var lines = wrap(text, cols);
+    var rows = Math.max(4, lines.length);
+    grid.textContent = "";
+    var tiles = [], k = 0;
+    for (var r = 0; r < rows; r++) {
+      var row = document.createElement("div");
+      row.className = "row";
+      var line = lines[r] || "";
+      for (var c = 0; c < cols; c++) {
+        var ch = line.charAt(c) || " ";
+        var tile = document.createElement("span");
+        tile.className = "tile";
+        var inner = document.createElement("span");
+        inner.className = "ch";
+        tile.appendChild(inner);
+        row.appendChild(tile);
+        if (ch !== " ") {
+          if (animate) {
+            tiles.push({ el: inner, ch: ch, at: 1100 + k * 26 + Math.random() * 140, done: false });
+          } else {
+            inner.textContent = ch;
+          }
+          k++;
+        }
+      }
+      grid.appendChild(row);
+    }
+    if (!animate || !tiles.length) return;
+    var t0 = performance.now();
+    flapEnd = t0 + Math.max.apply(null, tiles.map(function (t) { return t.at; })) + 100;
+    function tick() {
+      var now = performance.now() - t0, pending = 0;
+      for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i];
+        if (t.done) continue;
+        if (now >= t.at) { t.done = true; setCh(t.el, t.ch); }
+        else { pending++; setCh(t.el, CHARS.charAt(Math.floor(Math.random() * CHARS.length))); }
+      }
+      if (!pending) clearInterval(timer);
+    }
+    tick();
+    timer = setInterval(tick, 70);
+  }
+
+  // ---- state ----
+  var rolling = false, current = null, resizePending = false;
+  var ROLL = 1500;
+
+  function roll() {
+    if (rolling) return;
+    rolling = true;
+    var item = draw();
+    var face = 1 + Math.floor(Math.random() * 6);
+    current = item;
+
+    if (reduce) {
+      spinTo(face);
+    } else {
+      spinTo(face);
+      if (lift.animate) {
+        lift.animate([
+          { transform: "translateY(0) scale(1)" },
+          { transform: "translateY(-16%) scale(1.06)", offset: .35 },
+          { transform: "translateY(0) scale(1)" }
+        ], { duration: ROLL, easing: "ease-in-out" });
+        shadow.animate([
+          { transform: "scale(1)", opacity: 1 },
+          { transform: "scale(.7)", opacity: .55, offset: .35 },
+          { transform: "scale(1)", opacity: 1 }
+        ], { duration: ROLL, easing: "ease-in-out" });
+      }
+      try { if (navigator.vibrate) navigator.vibrate(14); } catch (e) {}
+    }
+
+    render(item[1], item[0], !reduce);
+    shareBtn.hidden = false;
+
+    setTimeout(function () {
+      rolling = false;
+      liveEl.textContent = "Grund: " + item[1];
+      if (resizePending) {
+        // viewport changed mid-roll: re-layout once the flaps have settled
+        resizePending = false;
+        setTimeout(function () { if (!rolling) showCurrent(); }, Math.max(0, flapEnd - performance.now()));
+      }
+    }, reduce ? 0 : ROLL);
+  }
+
+  function nudge() {
+    if (rolling || reduce || !lift.animate) return;
+    lift.animate([
+      { transform: "translateY(0)" },
+      { transform: "translateY(-5%)", offset: .4 },
+      { transform: "translateY(0)" }
+    ], { duration: 220, easing: "ease-out" });
+  }
+
+  // ---- input: double tap / double click, Enter or Space ----
+  var lastTap = 0, lx = 0, ly = 0;
+  scene.addEventListener("pointerup", function (e) {
+    if (!e.isPrimary) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    var now = performance.now();
+    if (now - lastTap < 350 && Math.hypot(e.clientX - lx, e.clientY - ly) < 40) {
+      lastTap = 0;
+      roll();
+    } else {
+      lastTap = now; lx = e.clientX; ly = e.clientY;
+      nudge();
+    }
+  });
+  scene.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); roll(); }
+  });
+  scene.addEventListener("dblclick", function (e) { e.preventDefault(); });
+
+  // ---- share ----
+  var shareTimer = null;
+  shareBtn.addEventListener("click", function () {
+    if (!current) return;
+    var text = "Mein Zug hat Verspätung wegen: " + current[1] + ". Würfle deinen eigenen Grund:";
+    var url = location.href;
+    function done(label) {
+      shareBtn.textContent = label;
+      clearTimeout(shareTimer);
+      shareTimer = setTimeout(function () { shareBtn.textContent = "Grund teilen"; }, 1800);
+    }
+    function copy() {
+      try {
+        navigator.clipboard.writeText(text + " " + url).then(function () { done("Kopiert"); }, function () {});
+      } catch (e) {}
+    }
+    if (navigator.share) {
+      navigator.share({ title: "Verspätungswürfel", text: text, url: url }).catch(function (err) {
+        if (err && err.name !== "AbortError") copy();
+      });
+    } else {
+      copy();
+    }
+  });
+
+  // ---- init and resize ----
+  function showCurrent() {
+    measure();
+    if (current) render(current[1], current[0], false);
+    else render("Noch kein Wurf", "-", false);
+  }
+  var rt = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { if (rolling) resizePending = true; else showCurrent(); }, 150);
+  });
+  showCurrent();
+})();
+</script>
+</body>
+</html>
