@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>El Clásico Bingo</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #121212;
+    --text: #F2F2F2;
+    --muted: #A0A0A0;
+    --red: #FF3B5C;
+    --yellow: #FDE100;
+    --field: #1E1E1E;
+    --field-border: #555555;
+    --radius: 8px;
+    --pad-t: max(16px, env(safe-area-inset-top));
+    --pad-r: max(16px, env(safe-area-inset-right));
+    --pad-b: max(16px, env(safe-area-inset-bottom));
+    --pad-l: max(16px, env(safe-area-inset-left));
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    height: 100vh;
+    height: 100dvh;
+    padding: var(--pad-t) var(--pad-r) var(--pad-b) var(--pad-l);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "head" "board" "foot";
+    gap: clamp(12px, 2.5vh, 24px);
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  header { grid-area: head; padding-right: 56px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(26px, min(8vw, 6vh), 56px);
+    font-weight: 700;
+    line-height: 1;
+  }
+  h1 span, .yellow { color: var(--yellow); }
+  .teams {
+    margin: 6px 0 0;
+    font-size: clamp(15px, min(4.4vw, 3vh), 28px);
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .red { color: var(--red); }
+  .vs { color: var(--muted); font-weight: 400; }
+
+  .board-wrap {
+    grid-area: board;
+    min-height: 0;
+    container-type: size;
+    display: grid;
+    place-items: center;
+  }
+  .board {
+    width: min(100cqw, 100cqh);
+    aspect-ratio: 1;
+    container-type: inline-size;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+    gap: clamp(4px, 1.6cqi, 10px);
+  }
+  .cell {
+    appearance: none;
+    margin: 0;
+    padding: 2px;
+    min-width: 0;
+    min-height: 0;
+    border-radius: var(--radius);
+    border: 2px solid var(--field-border);
+    background: var(--field);
+    color: var(--text);
+    font: inherit;
+    font-weight: 700;
+    font-size: clamp(10px, 3.6cqi, 22px);
+    line-height: 1.15;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background-color .12s, border-color .12s, color .12s, transform .08s;
+  }
+  .cell:active:not(:disabled) { transform: scale(.94); }
+  .cell[aria-pressed="true"] {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: var(--bg);
+  }
+  .cell.in-line { box-shadow: 0 0 0 3px var(--red); }
+  .cell:disabled { cursor: default; opacity: 1; }
+  .cell:focus-visible, .reset:focus-visible {
+    outline: 3px solid var(--text);
+    outline-offset: 2px;
+  }
+
+  footer { grid-area: foot; display: grid; gap: clamp(8px, 1.4vh, 12px); }
+  .rule {
+    margin: 0;
+    font-size: clamp(13px, min(3.8vw, 2.2vh), 22px);
+    line-height: 1.25;
+    color: var(--muted);
+  }
+  .rule strong { color: var(--text); }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .card {
+    border: 2px solid;
+    border-radius: var(--radius);
+    padding: clamp(8px, 1.4vh, 16px) clamp(10px, 2.5vw, 20px);
+  }
+  .card.red-b { border-color: var(--red); }
+  .card.yellow-b { border-color: var(--yellow); }
+  .card p { margin: 0; }
+  .card .k { font-size: clamp(12px, min(3.4vw, 2vh), 20px); color: var(--muted); }
+  .card .v { font-size: clamp(18px, min(5.6vw, 3.4vh), 34px); font-weight: 700; line-height: 1.2; }
+
+  .reset {
+    position: fixed;
+    top: var(--pad-t);
+    right: var(--pad-r);
+    z-index: 4;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 2px solid var(--field-border);
+    border-radius: var(--radius);
+    background: var(--field);
+    color: var(--text);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .reset:hover { border-color: var(--muted); }
+  .reset svg { width: 22px; height: 22px; }
+
+  #fireworks {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  #bingo-banner {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    background: rgba(18, 18, 18, .72);
+    animation: fade .25s ease-out both;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    pointer-events: none;
+  }
+  #bingo-banner[hidden] { display: none; }
+  #bingo-banner .big {
+    font-size: clamp(56px, min(22vw, 22vh), 200px);
+    font-weight: 900;
+    line-height: 1;
+    color: var(--yellow);
+    text-shadow: 0 4px 0 var(--bg), 0 0 32px rgba(0, 0, 0, .8);
+    animation: pop .5s cubic-bezier(.2, 1.6, .4, 1) both;
+  }
+  #bingo-banner .small {
+    margin-top: 8px;
+    font-size: clamp(22px, min(7vw, 7vh), 56px);
+    font-weight: 700;
+    color: var(--text);
+    text-shadow: 0 2px 0 var(--bg), 0 0 24px rgba(0, 0, 0, .8);
+    animation: pop .5s .12s cubic-bezier(.2, 1.6, .4, 1) both;
+  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pop {
+    from { transform: scale(.3); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* Wide / landscape: board left, info right */
+  @media (min-aspect-ratio: 5/4) {
+    main {
+      max-width: none;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-areas: "board head" "board foot";
+      column-gap: clamp(16px, 3vw, 48px);
+    }
+    .board-wrap { container-type: normal; place-items: start; }
+    .board { width: calc(100dvh - var(--pad-t) - var(--pad-b)); max-width: 60vw; }
+    footer { align-self: end; }
+    h1 { font-size: clamp(24px, min(4.6vw, 9vh), 64px); }
+    .teams { font-size: clamp(14px, min(2.6vw, 5vh), 32px); }
+    .rule { font-size: clamp(12px, min(2vw, 4vh), 22px); }
+    .card .k { font-size: clamp(11px, min(1.8vw, 3.4vh), 20px); }
+    .card .v { font-size: clamp(16px, min(3vw, 6vh), 36px); }
+    .card { padding: clamp(6px, 2vh, 16px) clamp(10px, 1.6vw, 20px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cell { transition: none; }
+    .cell:active:not(:disabled) { transform: none; }
+    #bingo-banner, #bingo-banner .big, #bingo-banner .small { animation: none; }
+  }
+</style>
+</head>
+<body data-bingos="0" data-fireworks="idle">
+<main>
+  <header>
+    <h1>El Clásico <span>Bingo</span></h1>
+    <p class="teams"><span class="red">FC Bayern München</span> <span class="vs">vs.</span> <span class="yellow">BVB</span></p>
+  </header>
+
+  <div class="board-wrap">
+    <div class="board" id="board" role="group" aria-label="Bingo-Feld"></div>
+  </div>
+
+  <footer>
+    <p class="rule">Treffer = jedes Mal, wenn jemand <strong>"El Clásico"</strong> sagt</p>
+    <div class="cards">
+      <div class="card red-b"><p class="k">Bei jedem Treffer</p><p class="v">1 Kurzer</p></div>
+      <div class="card yellow-b"><p class="k">Bei einem Bingo</p><p class="v">5 Kurze</p></div>
+    </div>
+  </footer>
+</main>
+
+<button class="reset" id="reset" type="button" aria-label="Spiel zurücksetzen" title="Spiel zurücksetzen">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 12a9 9 0 1 0 3-6.7"/>
+    <path d="M3 3v6h6"/>
+  </svg>
+</button>
+
+<canvas id="fireworks" aria-hidden="true"></canvas>
+<div id="bingo-banner" role="status" aria-live="polite" hidden>
+  <div class="big">BINGO!</div>
+  <div class="small">5 Kurze</div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const KEY = 'el-clasico-bingo:v1';
+  const SIZE = 5;
+  const CENTER = 12;
+
+  const LINES = (() => {
+    const lines = [];
+    for (let r = 0; r < SIZE; r++) lines.push([0, 1, 2, 3, 4].map((c) => r * SIZE + c));
+    for (let c = 0; c < SIZE; c++) lines.push([0, 1, 2, 3, 4].map((r) => r * SIZE + c));
+    lines.push([0, 6, 12, 18, 24]);
+    lines.push([4, 8, 12, 16, 20]);
+    return lines;
+  })();
+
+  const freshBoard = () => Array.from({ length: SIZE * SIZE }, (_, i) => i === CENTER);
+
+  function load() {
+    try {
+      const data = JSON.parse(localStorage.getItem(KEY));
+      if (Array.isArray(data) && data.length === SIZE * SIZE && data.every((v) => typeof v === 'boolean')) {
+        data[CENTER] = true;
+        return data;
+      }
+    } catch (_) { /* storage unavailable or corrupt */ }
+    return freshBoard();
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (_) { /* not persisted */ }
+  }
+
+  const completedLines = (m) => LINES.map((l, i) => (l.every((c) => m[c]) ? i : -1)).filter((i) => i >= 0);
+
+  const boardEl = document.getElementById('board');
+  const cells = [];
+  let marks = load();
+  let done = new Set(completedLines(marks));
+
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cell';
+    b.dataset.index = String(i);
+    b.innerHTML = '<span>El</span><span>Clásico</span>';
+    if (i === CENTER) {
+      b.disabled = true;
+      b.setAttribute('aria-label', 'El Clásico, Freifeld');
+    }
+    b.addEventListener('click', () => toggle(i));
+    boardEl.appendChild(b);
+    cells.push(b);
+  }
+
+  function render() {
+    const inLine = new Set();
+    done.forEach((li) => LINES[li].forEach((c) => inLine.add(c)));
+    cells.forEach((b, i) => {
+      b.setAttribute('aria-pressed', String(marks[i]));
+      b.classList.toggle('in-line', inLine.has(i));
+    });
+    document.body.dataset.bingos = String(done.size);
+  }
+
+  function toggle(i) {
+    if (i === CENTER) return;
+    marks[i] = !marks[i];
+    const now = completedLines(marks);
+    const fresh = now.filter((li) => !done.has(li));
+    done = new Set(now);
+    save();
+    render();
+    if (fresh.length) {
+      document.dispatchEvent(new CustomEvent('bingo', { detail: { lines: fresh } }));
+    }
+  }
+
+  function reset() {
+    marks = freshBoard();
+    done = new Set();
+    save();
+    render();
+    document.dispatchEvent(new CustomEvent('bingoreset'));
+  }
+
+  document.getElementById('reset').addEventListener('click', reset);
+  render();
+})();
+
+/* Fireworks + banner, driven by the 'bingo' / 'bingoreset' events. */
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('fireworks');
+  const ctx = canvas.getContext('2d');
+  const banner = document.getElementById('bingo-banner');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const COLORS = ['#FDE100', '#FF3B5C', '#F2F2F2', '#FFD23F', '#FF7A90'];
+  const ROCKET_G = 1400;    // px/s^2, rockets reach the top in < 1s
+  const SPARK_G = 130;      // px/s^2, sparks drift down slowly
+  const BANNER_MS = 2600;
+
+  let rockets = [];
+  let particles = [];
+  let pending = [];         // timeout ids for staggered launches
+  let raf = 0;
+  let last = 0;
+  let bannerTimer = 0;
+  let w = 0;
+  let h = 0;
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth;
+    h = window.innerHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function launch() {
+    const x = rand(w * 0.15, w * 0.85);
+    const targetY = rand(h * 0.15, h * 0.45);
+    // speed so the rocket peaks near targetY: v^2 = 2 g d
+    const vy = -Math.sqrt(2 * ROCKET_G * (h - targetY));
+    rockets.push({ x, y: h, vx: rand(-40, 40), vy, color: pick(COLORS) });
+    start();
+  }
+
+  function explode(r) {
+    const n = 70;
+    const speed = rand(180, 320);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + rand(-0.05, 0.05);
+      const s = speed * rand(0.5, 1);
+      particles.push({
+        x: r.x, y: r.y,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        life: rand(1.0, 1.6), age: 0,
+        color: Math.random() < 0.7 ? r.color : pick(COLORS),
+      });
+    }
+  }
+
+  function frame(t) {
+    const dt = Math.min((t - last) / 1000, 0.05);
+    last = t;
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'lighter';
+
+    rockets = rockets.filter((r) => {
+      r.vy += ROCKET_G * dt;
+      r.x += r.vx * dt;
+      r.y += r.vy * dt;
+      if (r.vy >= -20) { explode(r); return false; }
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      return true;
+    });
+
+    particles = particles.filter((p) => {
+      p.age += dt;
+      if (p.age >= p.life) return false;
+      p.vx *= 1 - 1.2 * dt;
+      p.vy = p.vy * (1 - 1.2 * dt) + SPARK_G * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      ctx.globalAlpha = 1 - p.age / p.life;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+      return true;
+    });
+    ctx.globalAlpha = 1;
+
+    if (rockets.length || particles.length || pending.length) {
+      raf = requestAnimationFrame(frame);
+    } else {
+      stop();
+    }
+  }
+
+  function start() {
+    if (raf) return;
+    document.body.dataset.fireworks = 'running';
+    last = performance.now();
+    raf = requestAnimationFrame(frame);
+  }
+
+  function stop() {
+    cancelAnimationFrame(raf);
+    raf = 0;
+    pending.forEach(clearTimeout);
+    pending = [];
+    rockets = [];
+    particles = [];
+    ctx.clearRect(0, 0, w, h);
+    document.body.dataset.fireworks = 'idle';
+  }
+
+  function showBanner() {
+    banner.hidden = false;
+    // restart the pop animation on repeated bingos
+    banner.querySelectorAll('div').forEach((el) => {
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+    });
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => { banner.hidden = true; }, BANNER_MS);
+  }
+
+  function hideBanner() {
+    clearTimeout(bannerTimer);
+    banner.hidden = true;
+  }
+
+  document.addEventListener('bingo', (e) => {
+    showBanner();
+    if (reduced.matches) return;
+    const count = 5 * e.detail.lines.length;
+    // first rocket now so the show starts on the tap, rest staggered
+    launch();
+    for (let i = 1; i < count; i++) {
+      const id = setTimeout(() => {
+        pending = pending.filter((p) => p !== id);
+        launch();
+      }, i * rand(180, 260));
+      pending.push(id);
+    }
+  });
+
+  document.addEventListener('bingoreset', () => {
+    stop();
+    hideBanner();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+})();
+</script>
+</body>
+</html>
