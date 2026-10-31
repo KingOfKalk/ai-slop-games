@@ -175,6 +175,51 @@ for (const [w, h] of [[390, 844], [844, 390], [360, 640], [1440, 900]]) {
   });
 }
 
+const fw = (page) => page.evaluate(() => document.body.dataset.fireworks);
+
+test('fireworks run and stop', async (b) => {
+  const { context, page } = await open(b);
+  assert.equal(await fw(page), 'idle');
+  await tap(page, 10, 11, 13, 14);
+  assert.equal(await fw(page), 'running');
+  assert.equal(await page.locator('#bingo-banner').isVisible(), true);
+  await page.waitForFunction(() => document.body.dataset.fireworks === 'idle', null, { timeout: 6000 });
+  await context.close();
+});
+
+test('fireworks do not block taps', async (b) => {
+  const { context, page } = await open(b);
+  await tap(page, 10, 11, 13, 14);
+  await tap(page, 0);
+  assert.deepEqual(await pressed(page), [0, 10, 11, 12, 13, 14]);
+  await context.close();
+});
+
+test('reduced motion: banner only', async (b) => {
+  const { context, page } = await open(b, { reducedMotion: true });
+  await page.evaluate(() => {
+    window.__sawRunning = false;
+    new MutationObserver(() => {
+      if (document.body.dataset.fireworks === 'running') window.__sawRunning = true;
+    }).observe(document.body, { attributes: true });
+  });
+  await tap(page, 10, 11, 13, 14);
+  assert.equal(await page.locator('#bingo-banner').isVisible(), true);
+  assert.equal(await page.evaluate(() => window.__sawRunning), false);
+  await page.waitForFunction(() => !document.querySelector('#bingo-banner').checkVisibility(), null, { timeout: 5000 });
+  await context.close();
+});
+
+test('reset stops fireworks', async (b) => {
+  const { context, page } = await open(b);
+  await tap(page, 10, 11, 13, 14);
+  assert.equal(await fw(page), 'running');
+  await page.click('#reset');
+  assert.equal(await fw(page), 'idle');
+  assert.equal(await page.locator('#bingo-banner').isVisible(), false);
+  await context.close();
+});
+
 (async () => {
   const browser = await chromium.launch();
   let failed = 0;

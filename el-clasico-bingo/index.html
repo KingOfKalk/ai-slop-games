@@ -145,7 +145,7 @@
     position: fixed;
     top: var(--pad-t);
     right: var(--pad-r);
-    z-index: 3;
+    z-index: 4;
     width: 44px;
     height: 44px;
     padding: 0;
@@ -167,7 +167,41 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
+    z-index: 3;
+  }
+
+  #bingo-banner {
+    position: fixed;
+    inset: 0;
     z-index: 2;
+    background: rgba(18, 18, 18, .72);
+    animation: fade .25s ease-out both;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    pointer-events: none;
+  }
+  #bingo-banner[hidden] { display: none; }
+  #bingo-banner .big {
+    font-size: clamp(56px, min(22vw, 22vh), 200px);
+    font-weight: 900;
+    line-height: 1;
+    color: var(--yellow);
+    text-shadow: 0 4px 0 var(--bg), 0 0 32px rgba(0, 0, 0, .8);
+    animation: pop .5s cubic-bezier(.2, 1.6, .4, 1) both;
+  }
+  #bingo-banner .small {
+    margin-top: 8px;
+    font-size: clamp(22px, min(7vw, 7vh), 56px);
+    font-weight: 700;
+    color: var(--text);
+    text-shadow: 0 2px 0 var(--bg), 0 0 24px rgba(0, 0, 0, .8);
+    animation: pop .5s .12s cubic-bezier(.2, 1.6, .4, 1) both;
+  }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pop {
+    from { transform: scale(.3); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
   }
 
   /* Wide / landscape: board left, info right */
@@ -193,10 +227,11 @@
   @media (prefers-reduced-motion: reduce) {
     .cell { transition: none; }
     .cell:active:not(:disabled) { transform: none; }
+    #bingo-banner, #bingo-banner .big, #bingo-banner .small { animation: none; }
   }
 </style>
 </head>
-<body data-bingos="0">
+<body data-bingos="0" data-fireworks="idle">
 <main>
   <header>
     <h1>El Clásico <span>Bingo</span></h1>
@@ -224,6 +259,10 @@
 </button>
 
 <canvas id="fireworks" aria-hidden="true"></canvas>
+<div id="bingo-banner" role="status" aria-live="polite" hidden>
+  <div class="big">BINGO!</div>
+  <div class="small">5 Kurze</div>
+</div>
 
 <script>
 (() => {
@@ -314,6 +353,164 @@
 
   document.getElementById('reset').addEventListener('click', reset);
   render();
+})();
+
+/* Fireworks + banner, driven by the 'bingo' / 'bingoreset' events. */
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('fireworks');
+  const ctx = canvas.getContext('2d');
+  const banner = document.getElementById('bingo-banner');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const COLORS = ['#FDE100', '#FF3B5C', '#F2F2F2', '#FFD23F', '#FF7A90'];
+  const ROCKET_G = 1400;    // px/s^2, rockets reach the top in < 1s
+  const SPARK_G = 130;      // px/s^2, sparks drift down slowly
+  const BANNER_MS = 2600;
+
+  let rockets = [];
+  let particles = [];
+  let pending = [];         // timeout ids for staggered launches
+  let raf = 0;
+  let last = 0;
+  let bannerTimer = 0;
+  let w = 0;
+  let h = 0;
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = (arr) => arr[(Math.random() * arr.length) | 0];
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth;
+    h = window.innerHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function launch() {
+    const x = rand(w * 0.15, w * 0.85);
+    const targetY = rand(h * 0.15, h * 0.45);
+    // speed so the rocket peaks near targetY: v^2 = 2 g d
+    const vy = -Math.sqrt(2 * ROCKET_G * (h - targetY));
+    rockets.push({ x, y: h, vx: rand(-40, 40), vy, color: pick(COLORS) });
+    start();
+  }
+
+  function explode(r) {
+    const n = 70;
+    const speed = rand(180, 320);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + rand(-0.05, 0.05);
+      const s = speed * rand(0.5, 1);
+      particles.push({
+        x: r.x, y: r.y,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s,
+        life: rand(1.0, 1.6), age: 0,
+        color: Math.random() < 0.7 ? r.color : pick(COLORS),
+      });
+    }
+  }
+
+  function frame(t) {
+    const dt = Math.min((t - last) / 1000, 0.05);
+    last = t;
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'lighter';
+
+    rockets = rockets.filter((r) => {
+      r.vy += ROCKET_G * dt;
+      r.x += r.vx * dt;
+      r.y += r.vy * dt;
+      if (r.vy >= -20) { explode(r); return false; }
+      ctx.fillStyle = r.color;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      return true;
+    });
+
+    particles = particles.filter((p) => {
+      p.age += dt;
+      if (p.age >= p.life) return false;
+      p.vx *= 1 - 1.2 * dt;
+      p.vy = p.vy * (1 - 1.2 * dt) + SPARK_G * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      ctx.globalAlpha = 1 - p.age / p.life;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+      return true;
+    });
+    ctx.globalAlpha = 1;
+
+    if (rockets.length || particles.length || pending.length) {
+      raf = requestAnimationFrame(frame);
+    } else {
+      stop();
+    }
+  }
+
+  function start() {
+    if (raf) return;
+    document.body.dataset.fireworks = 'running';
+    last = performance.now();
+    raf = requestAnimationFrame(frame);
+  }
+
+  function stop() {
+    cancelAnimationFrame(raf);
+    raf = 0;
+    pending.forEach(clearTimeout);
+    pending = [];
+    rockets = [];
+    particles = [];
+    ctx.clearRect(0, 0, w, h);
+    document.body.dataset.fireworks = 'idle';
+  }
+
+  function showBanner() {
+    banner.hidden = false;
+    // restart the pop animation on repeated bingos
+    banner.querySelectorAll('div').forEach((el) => {
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+    });
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => { banner.hidden = true; }, BANNER_MS);
+  }
+
+  function hideBanner() {
+    clearTimeout(bannerTimer);
+    banner.hidden = true;
+  }
+
+  document.addEventListener('bingo', (e) => {
+    showBanner();
+    if (reduced.matches) return;
+    const count = 5 * e.detail.lines.length;
+    // first rocket now so the show starts on the tap, rest staggered
+    launch();
+    for (let i = 1; i < count; i++) {
+      const id = setTimeout(() => {
+        pending = pending.filter((p) => p !== id);
+        launch();
+      }, i * rand(180, 260));
+      pending.push(id);
+    }
+  });
+
+  document.addEventListener('bingoreset', () => {
+    stop();
+    hideBanner();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
 })();
 </script>
 </body>
