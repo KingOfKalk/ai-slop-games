@@ -88,6 +88,24 @@ test('input during a roll is ignored', async (b) => {
   await context.close();
 });
 
+test('resize during a roll re-lays out the board afterwards', async (b) => {
+  const { context, page } = await open(b, { viewport: { width: 844, height: 390 } });
+  await page.focus('#scene');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(200);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(4500);
+  const r = await page.evaluate(() => ({
+    sw: document.documentElement.scrollWidth,
+    maxTile: Math.max(...[...document.querySelectorAll('.tile')].map((t) => t.getBoundingClientRect().right)),
+    boardRight: document.getElementById('board').getBoundingClientRect().right,
+  }));
+  assert.ok(r.sw <= 390, `scrollWidth ${r.sw} > 390`);
+  assert.ok(r.maxTile <= r.boardRight, `tiles overflow board ${r.maxTile} > ${r.boardRight}`);
+  assert.ok((await live(page)).startsWith('Grund: '));
+  await context.close();
+});
+
 test('share without share sheet and clipboard is safe', async (b) => {
   const { context, page } = await open(b, {
     reducedMotion: true,

@@ -328,7 +328,7 @@ h1 {
 
   // ---- split-flap board ----
   var CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ-/";
-  var tw = 19, cols = 15, timer = null;
+  var tw = 19, cols = 15, timer = null, flapEnd = 0;
 
   function measure() {
     var W = grid.clientWidth || 300, gap = 3;
@@ -393,6 +393,7 @@ h1 {
     }
     if (!animate || !tiles.length) return;
     var t0 = performance.now();
+    flapEnd = t0 + Math.max.apply(null, tiles.map(function (t) { return t.at; })) + 100;
     function tick() {
       var now = performance.now() - t0, pending = 0;
       for (var i = 0; i < tiles.length; i++) {
@@ -408,7 +409,7 @@ h1 {
   }
 
   // ---- state ----
-  var rolling = false, current = null;
+  var rolling = false, current = null, resizePending = false;
   var ROLL = 1500;
 
   function roll() {
@@ -443,6 +444,11 @@ h1 {
     setTimeout(function () {
       rolling = false;
       liveEl.textContent = "Grund: " + item[1];
+      if (resizePending) {
+        // viewport changed mid-roll: re-layout once the flaps have settled
+        resizePending = false;
+        setTimeout(function () { if (!rolling) showCurrent(); }, Math.max(0, flapEnd - performance.now()));
+      }
     }, reduce ? 0 : ROLL);
   }
 
@@ -508,7 +514,7 @@ h1 {
   var rt = null;
   window.addEventListener("resize", function () {
     clearTimeout(rt);
-    rt = setTimeout(function () { if (!rolling) showCurrent(); }, 150);
+    rt = setTimeout(function () { if (rolling) resizePending = true; else showCurrent(); }, 150);
   });
   showCurrent();
 })();
