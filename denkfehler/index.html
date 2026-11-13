@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>Denkfehler in Diskussionen</title>
+<link rel="icon" href="data:,">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+:root {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --ink: #111827;
+  --muted: #374151;
+  --line: #D1D5DB;
+  --box: #F3F4F6;
+  --accent: #1D4ED8;
+  --radius: 4px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* three sizes only: small, normal, large */
+  --fs-s: 15px;
+  --fs-m: 18px;
+  --fs-l: clamp(28px, 8vw, 40px);
+}
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body {
+  font-family: var(--font);
+  font-size: var(--fs-m);
+  line-height: 1.45;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { width: 100%; max-width: 560px; flex: 1 1 auto; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: var(--fs-s); color: var(--muted); }
+.top h1 { margin: 0; font-size: var(--fs-s); font-weight: 600; }
+
+.card {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.card.in { animation: in .22s ease-out; }
+.card.in-back { animation: in-back .22s ease-out; }
+@keyframes in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes in-back { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+
+.bar { width: 64px; height: 8px; border-radius: var(--radius); background: var(--accent); }
+.cat { margin: 0; font-size: var(--fs-s); font-weight: 600; color: var(--muted); }
+.name { margin: 0; font-size: var(--fs-l); line-height: 1.1; font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; hyphens: auto; }
+.def, .note, .counter-text { margin: 0; }
+.note { color: var(--muted); }
+.label { margin: 0 0 8px; font-size: var(--fs-s); font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+.example { background: var(--box); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.example p { margin: 0; }
+.example strong { font-weight: 800; }
+.counter { border-top: 2px solid var(--ink); padding-top: 16px; }
+
+.nav { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 8px; }
+button {
+  font: inherit;
+  font-size: var(--fs-m);
+  font-weight: 600;
+  min-height: 48px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+button:disabled { color: #6B7280; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+button:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.hint { margin: 0; font-size: var(--fs-s); color: var(--muted); text-align: center; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card.in, .card.in-back { animation: none; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <h1>Denkfehler in Diskussionen</h1>
+    <span id="seen">1 / 25</span>
+  </header>
+
+  <article class="card" id="card" aria-live="polite">
+    <div class="bar" aria-hidden="true"></div>
+    <p class="cat" id="cat"></p>
+    <h2 class="name" id="name"></h2>
+    <p class="def" id="def"></p>
+    <p class="note" id="note" hidden></p>
+    <section>
+      <p class="label">Beispiel</p>
+      <div class="example" id="example"></div>
+    </section>
+    <section class="counter">
+      <p class="label">So sprichst du es an</p>
+      <p class="counter-text" id="counter"></p>
+    </section>
+  </article>
+
+  <nav class="nav" aria-label="Karten">
+    <button type="button" id="back" aria-label="Vorige Karte">Zurück</button>
+    <button type="button" id="share">Teilen</button>
+    <button type="button" id="next" class="primary">Nächste Karte</button>
+  </nav>
+  <p class="hint">Wischen oder Pfeiltasten zum Blättern</p>
+  <p class="sr" id="live" aria-live="polite"></p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // Categories and cards from the "Denkfehler in Diskussionen" canvas.
+  var CATS = {
+    E: { name: "Vom Einzelfall aufs Ganze", color: "#1D4ED8" },
+    A: { name: "Ausweichen statt antworten", color: "#C2410C" },
+    P: { name: "PLURV", color: "#047857" },
+    V: { name: "Schiefe Vergleiche", color: "#7C3AED" },
+    M: { name: "Person statt Sache", color: "#BE185D" }
+  };
+
+  // [id, category, position label, name, definition, [[speaker, line], [speaker, line]], counter, note?]
+  var CARDS = [
+    ["pauschalisierung", "E", "1 / 5", "Pauschalisierung",
+      "Ein einzelner Fall wird zur allgemeinen Regel erklärt. Aus „einer“ wird unbemerkt „alle“ oder „immer“.",
+      [["Beobachtung", "„Mein Nachbar musste mit seinem E-Auto dreimal in die Werkstatt.“"], ["Schluss", "„E-Autos sind alle Schrott.“"]],
+      "„Das ist ein Einzelfall. Wie sieht es denn insgesamt aus?“"],
+    ["anekdotisches-argument", "E", "2 / 5", "Anekdotisches Argument",
+      "Eine persönliche Geschichte soll eine Aussage belegen, die eigentlich Daten braucht. Anekdoten sind anschaulich, aber kein Beweis.",
+      [["Behauptung", "„Rauchen ist gar nicht so schädlich.“"], ["Beleg", "„Mein Opa hat geraucht und wurde 95.“"]],
+      "„Das ist eine Anekdote. Gibt es Zahlen, die das zeigen?“"],
+    ["rosinenpicken", "E", "3 / 5", "Rosinenpicken",
+      "Aus vielen Daten werden nur die herausgesucht, die zur eigenen These passen. Alles andere wird verschwiegen.",
+      [["Gesamtbild", "„In neun von zehn Studien wirkt das Mittel nicht.“"], ["Rosine", "„Hier ist eine Studie, in der es wirkt.“"]],
+      "„Du zeigst nur die passenden Daten. Was sagen die übrigen?“"],
+    ["nutpicking", "E", "4 / 5", "Nutpicking",
+      "Die extremste Person einer Gruppe wird herausgegriffen und als typisch dargestellt. So wirkt die ganze Gruppe absurd.",
+      [["Beobachtung", "„Auf der Demo hatte einer ein völlig wirres Schild.“"], ["Schluss", "„So denken die alle.“"]],
+      "„Das ist das extremste Beispiel. Ist das typisch für die Gruppe?“"],
+    ["stereotypisierung", "E", "5 / 5", "Stereotypisierung",
+      "Vom Verhalten einzelner Personen wird auf eine ganze Gruppe geschlossen. Der einzelne Mensch verschwindet hinter dem Klischee.",
+      [["Erlebnis", "„Heute ist mir ein Radfahrer bei Rot fast reingefahren.“"], ["Schluss", "„Radfahrer halten sich nie an Regeln.“"]],
+      "„Das war eine Person. Was sagt das über alle anderen?“"],
+
+    ["strohmann", "A", "1 / 5", "Strohmann",
+      "Die Aussage des Gegenübers wird verzerrt oder überspitzt wiedergegeben. Widerlegt wird dann diese leichtere Version, nicht das Original.",
+      [["A", "„Wir sollten weniger Fleisch essen.“"], ["B", "„Du willst also allen das Grillen verbieten?“"]],
+      "„Das habe ich nicht gesagt. Mein Punkt war: ...“"],
+    ["derailing", "A", "2 / 5", "Derailing",
+      "Das Gespräch wird vom eigentlichen Thema weggelenkt, etwa auf Nebensächlichkeiten, den Ton oder die Form. Das Kernanliegen geht unter.",
+      [["A", "„Die Mieten in unserer Stadt steigen viel zu stark.“"], ["B", "„Wenn du so emotional wirst, kann man nicht mit dir reden.“"]],
+      "„Das ist ein anderes Thema. Lass uns erst meinen Punkt klären.“"],
+    ["whataboutism", "A", "3 / 5", "Whataboutism",
+      "Statt auf Kritik einzugehen, wird auf ein anderes, angeblich schlimmeres Problem verwiesen. Die ursprüngliche Kritik bleibt unbeantwortet.",
+      [["A", "„Unser Verein hat die Kasse nicht ordentlich geführt.“"], ["B", "„Und was ist mit dem anderen Verein? Da ist es viel schlimmer.“"]],
+      "„Das andere Problem gibt es vielleicht auch. Aber was sagst du zu diesem?“"],
+    ["delegitimierung", "A", "4 / 5", "Delegitimierung",
+      "Nicht das Argument wird angegriffen, sondern die Person: ihr Alter, ihr Beruf, ihre Herkunft oder ihre Motive. Der Fachbegriff dafür ist „Ad hominem“.",
+      [["A", "„Die Zahlen im Haushaltsplan gehen nicht auf.“"], ["B", "„Was weißt du schon davon, du bist doch erst 22.“"]],
+      "„Lass uns über das Argument reden, nicht über mich. Was ist daran falsch?“"],
+    ["gish-galopp", "A", "5 / 5", "Gish-Galopp",
+      "In kurzer Zeit kommen so viele Behauptungen, dass niemand alle prüfen oder widerlegen kann. Wer nicht auf alles antwortet, wirkt unterlegen.",
+      [["A", "„Das Projekt ist zu teuer, zu spät, schlecht geplant, keiner will es, und der Boden ist sowieso ungeeignet.“"], ["B", "„Äh, wo soll ich da anfangen?“"]],
+      "„Das sind viele Punkte auf einmal. Welcher ist dir am wichtigsten? Den schauen wir uns an.“"],
+
+    ["pseudo-experten", "P", "P wie", "Pseudo-Experten",
+      "Personen mit Titel oder Bekanntheit treten als Fachleute auf, haben auf dem Gebiet aber keine echte Expertise. Ihre Meinung wird gegen den Forschungsstand gestellt.",
+      [["A", "„Die Fachwelt ist sich in dieser Frage einig.“"], ["B", "„Ein Professor für Maschinenbau sieht das aber ganz anders.“"]],
+      "„Forscht diese Person auf genau diesem Gebiet?“"],
+    ["logikfehler", "P", "L wie", "Logikfehler",
+      "Aus Fakten werden Schlüsse gezogen, die gar nicht daraus folgen. Typisch sind falsche Vergleiche, Scheinkausalitäten und falsche Alternativen.",
+      [["Fakt", "„Das Klima hat sich schon immer verändert.“"], ["Schluss", "„Also ist auch der heutige Wandel natürlich.“"]],
+      "„Die Tatsache stimmt. Aber folgt daraus wirklich dein Schluss?“"],
+    ["unerfuellbare-erwartungen", "P", "U wie", "Unerfüllbare Erwartungen",
+      "Es wird absolute Gewissheit verlangt, die Wissenschaft nie liefern kann. Jede Restunsicherheit dient als Grund, nichts zu glauben oder zu tun.",
+      [["A", "„Die Studienlage ist eindeutig.“"], ["B", "„Solange es keinen hundertprozentigen Beweis gibt, glaube ich das nicht.“"]],
+      "„Hundertprozentige Sicherheit gibt es nirgends. Was spricht konkret dagegen?“"],
+    ["rosinenpickerei", "P", "R wie", "Rosinenpickerei",
+      "Einzelne passende Daten oder Studien werden herausgegriffen, der große Rest wird ignoriert. So entsteht ein verzerrtes Bild vom Forschungsstand.",
+      [["A", "„Die Messreihe zeigt über Jahrzehnte einen klaren Trend.“"], ["B", "„Aber letzten Winter war es doch eiskalt.“"]],
+      "„Ein kalter Winter ist ein Einzelwert. Was zeigt der langfristige Trend?“"],
+    ["verschwoerungsmythen", "P", "V wie", "Verschwörungsmythen",
+      "Fachleute, Behörden oder Medien sollen heimlich zusammenarbeiten, um die Wahrheit zu verbergen. Jeder Gegenbeweis gilt dann als Teil der Verschwörung.",
+      [["A", "„Hier sind unabhängige Studien aus zehn Ländern.“"], ["B", "„Die stecken doch alle unter einer Decke.“"]],
+      "„Wie sollten so viele Menschen das unbemerkt geheim halten? Welche Belege gibt es dafür?“"],
+
+    ["falsche-gleichsetzung", "V", "1 / 5", "Falsche Gleichsetzung",
+      "Zwei Dinge werden gleichgesetzt, nur weil sie eine Gemeinsamkeit haben. Unterschiede in Ausmaß, Folgen oder Absicht werden ausgeblendet.",
+      [["A", "„Er hat Steuern in Millionenhöhe hinterzogen.“"], ["B", "„Du hast doch auch schon mal falsch geparkt.“"]],
+      "„Beides ist ein Regelverstoß. Aber ist es wirklich vergleichbar?“"],
+    ["hufeisen-argument", "V", "2 / 5", "Hufeisen-Argument",
+      "Linke und rechte Ränder werden pauschal gleichgesetzt, als lägen sie wie die Enden eines Hufeisens dicht beieinander. Unterschiede in Zielen, Werten und Taten fallen unter den Tisch.",
+      [["A", "„Diese Gruppe am einen Rand ist ein echtes Problem.“"], ["B", "„Die am anderen Rand sind doch genauso schlimm.“"]],
+      "„Lass uns konkret vergleichen: Welche Ziele, Taten und Folgen haben beide Seiten?“",
+      "Die Hufeisentheorie selbst ist in der Politikwissenschaft umstritten."],
+    ["falsches-dilemma", "V", "3 / 5", "Falsches Dilemma",
+      "Es werden nur zwei Möglichkeiten angeboten, obwohl es weitere gibt. Wer die eine ablehnt, soll automatisch für die andere sein.",
+      [["A", "„Ich finde den Plan für die Innenstadt nicht gut.“"], ["B", "„Dann bist du also für Stillstand.“"]],
+      "„Es gibt nicht nur diese zwei Möglichkeiten. Welche gibt es noch?“"],
+    ["dammbruchargument", "V", "4 / 5", "Dammbruchargument",
+      "Ein erster Schritt wird abgelehnt, weil er angeblich zwangsläufig eine Kette immer schlimmerer Folgen auslöst. Belege für diese Kette fehlen.",
+      [["A", "„Wir könnten freitags Homeoffice testen.“"], ["B", "„Dann kommt bald keiner mehr, und die Firma geht pleite.“"]],
+      "„Warum sollte der erste Schritt zwangsläufig zum letzten führen?“"],
+    ["scheinkausalitaet", "V", "5 / 5", "Scheinkausalität",
+      "Weil zwei Dinge zusammen auftreten, wird angenommen, dass das eine das andere verursacht. Oft steckt ein dritter Faktor oder schlicht Zufall dahinter.",
+      [["Beobachtung", "„Wenn viel Eis verkauft wird, gibt es auch mehr Sonnenbrand.“"], ["Schluss", "„Eis verursacht Sonnenbrand.“"]],
+      "„Hängt das wirklich ursächlich zusammen, oder gibt es eine gemeinsame Ursache?“"],
+
+    ["ad-hominem", "M", "1 / 5", "Ad hominem",
+      "Lateinisch für „gegen den Menschen“. Statt auf das Argument einzugehen, wird die Person herabgesetzt, beleidigt oder lächerlich gemacht. Das Argument selbst bleibt unberührt.",
+      [["A", "„Die Ampelschaltung an der Kreuzung ist gefährlich.“"], ["B", "„Du kannst ja nicht mal richtig Auto fahren.“"]],
+      "„Das ist ein Angriff auf mich, kein Argument. Was sagst du zur Ampel?“"],
+    ["tu-quoque", "M", "2 / 5", "Tu quoque",
+      "Lateinisch für „auch du“. Kritik wird abgewehrt, indem man dem Gegenüber vorwirft, sich selbst nicht daran zu halten. Ob die Kritik stimmt, bleibt offen.",
+      [["A", "„Du solltest abends weniger am Handy hängen.“"], ["B", "„Ausgerechnet du sagst das? Du hängst doch selbst ständig dran.“"]],
+      "„Mag sein, dass ich das auch tue. Ist der Punkt deshalb falsch?“"],
+    ["brunnenvergiftung", "M", "3 / 5", "Brunnenvergiftung",
+      "Bevor jemand überhaupt spricht, wird die Person vorsorglich schlechtgemacht. Alles, was sie danach sagt, wirkt von vornherein unglaubwürdig.",
+      [["Vorher", "„Gleich redet Frau M., aber die hat ja eh keine Ahnung.“"], ["Frau M.", "„Ich habe mir die Zahlen genau angesehen ...“"]],
+      "„Lass sie doch erst mal ausreden. Dann bewerten wir, was sie sagt.“"],
+    ["kontaktschuld", "M", "4 / 5", "Kontaktschuld",
+      "Eine Aussage wird abgelehnt, weil auch eine unbeliebte Person oder Gruppe sie vertritt. Die Nähe ersetzt die inhaltliche Prüfung.",
+      [["A", "„Wir sollten die Bahnstrecke ins Umland ausbauen.“"], ["B", "„Das fordert Partei X auch. Also kann das ja nichts sein.“"]],
+      "„Wer es noch fordert, sagt nichts darüber, ob es stimmt. Was spricht inhaltlich dagegen?“"],
+    ["genetischer-fehlschluss", "M", "5 / 5", "Genetischer Fehlschluss",
+      "Eine Idee wird allein nach ihrer Herkunft bewertet, nicht nach ihrem Inhalt. Woher etwas kommt, sagt aber nichts darüber, ob es richtig ist.",
+      [["A", "„Die Idee mit dem Lastenrad-Verleih ist gut.“"], ["B", "„Die kommt von einem Start-up aus Berlin, das kann ja nichts sein.“"]],
+      "„Egal, wo die Idee herkommt: Funktioniert sie oder nicht?“"]
+  ].map(function (c) {
+    return { id: c[0], cat: c[1], pos: c[2], name: c[3], def: c[4], example: c[5], counter: c[6], note: c[7] || "" };
+  });
+
+  var byId = {};
+  CARDS.forEach(function (c, i) { byId[c.id] = i; });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var cardEl = $("card"), backBtn = $("back"), nextBtn = $("next"), shareBtn = $("share");
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- draw without repeats until every card was shown once ----
+  var bag = [];
+  var seen = {};
+  function shuffle(a) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function draw(exclude) {
+    if (!bag.length) {
+      bag = shuffle(CARDS.map(function (_, i) { return i; }));
+      // avoid showing the same card twice in a row across a reshuffle
+      if (bag[bag.length - 1] === exclude && bag.length > 1) {
+        var t = bag[0]; bag[0] = bag[bag.length - 1]; bag[bag.length - 1] = t;
+      }
+    }
+    return bag.pop();
+  }
+  function take(i) {
+    // remove a directly opened card from the bag so it does not come up again this round
+    var k = bag.indexOf(i);
+    if (k !== -1) bag.splice(k, 1);
+  }
+
+  // ---- history for "back" ----
+  var history_ = [];
+  var pos = -1;
+
+  function render(i, dir) {
+    var c = CARDS[i];
+    var cat = CATS[c.cat];
+    document.documentElement.style.setProperty("--accent", cat.color);
+    $("cat").textContent = cat.name + " · " + c.pos;
+    $("name").textContent = c.name;
+    $("def").textContent = c.def;
+    $("note").textContent = c.note;
+    $("note").hidden = !c.note;
+    var ex = $("example");
+    ex.textContent = "";
+    c.example.forEach(function (line) {
+      var p = document.createElement("p");
+      var s = document.createElement("strong");
+      s.textContent = line[0] + ":";
+      p.appendChild(s);
+      p.appendChild(document.createTextNode(" " + line[1]));
+      ex.appendChild(p);
+    });
+    $("counter").textContent = c.counter;
+    cardEl.dataset.id = c.id;
+
+    if (!seen[i]) { seen[i] = true; }
+    var n = Object.keys(seen).length;
+    $("seen").textContent = n + " / " + CARDS.length;
+    if (n === CARDS.length) seen = {}; // next card starts a new round count
+
+    backBtn.disabled = pos <= 0;
+    $("live").textContent = "Karte: " + c.name;
+
+    if (location.hash.slice(1) !== c.id) {
+      try { history.replaceState(null, "", "#" + c.id); } catch (e) {}
+    }
+    document.title = c.name + " · Denkfehler in Diskussionen";
+
+    if (!reduce && dir) {
+      cardEl.classList.remove("in", "in-back");
+      void cardEl.offsetWidth;
+      cardEl.classList.add(dir > 0 ? "in" : "in-back");
+    }
+  }
+
+  function push(i, dir) {
+    history_ = history_.slice(0, pos + 1);
+    history_.push(i);
+    pos = history_.length - 1;
+    render(i, dir);
+  }
+
+  function next() {
+    if (pos < history_.length - 1) {
+      pos++;
+      render(history_[pos], 1);
+      return;
+    }
+    push(draw(history_[pos]), 1);
+  }
+  function back() {
+    if (pos <= 0) return;
+    pos--;
+    render(history_[pos], -1);
+  }
+
+  nextBtn.addEventListener("click", next);
+  backBtn.addEventListener("click", back);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var t = e.target && e.target.tagName;
+    if (e.key === "ArrowRight") { e.preventDefault(); next(); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); back(); }
+    else if (e.key === " " && t !== "BUTTON") { e.preventDefault(); next(); }
+  });
+
+  // ---- swipe: left = next, right = back ----
+  var sx = null, sy = null;
+  cardEl.addEventListener("pointerdown", function (e) { sx = e.clientX; sy = e.clientY; });
+  cardEl.addEventListener("pointerup", function (e) {
+    if (sx === null) return;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    sx = sy = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) next(); else back();
+  });
+  cardEl.addEventListener("pointercancel", function () { sx = sy = null; });
+
+  // ---- direct links via #id ----
+  function fromHash() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    return Object.prototype.hasOwnProperty.call(byId, id) ? byId[id] : -1;
+  }
+  window.addEventListener("hashchange", function () {
+    var i = fromHash();
+    if (i === -1 || i === history_[pos]) return;
+    take(i);
+    push(i, 1);
+  });
+
+  // ---- share ----
+  var shareTimer = null;
+  shareBtn.addEventListener("click", function () {
+    var c = CARDS[history_[pos]];
+    var text = "Denkfehler: " + c.name + " - " + c.def;
+    var url = location.href;
+    function done(label) {
+      shareBtn.textContent = label;
+      clearTimeout(shareTimer);
+      shareTimer = setTimeout(function () { shareBtn.textContent = "Teilen"; }, 1800);
+    }
+    function copy() {
+      try {
+        navigator.clipboard.writeText(text + " " + url).then(function () { done("Kopiert"); }, function () {});
+      } catch (e) {}
+    }
+    if (navigator.share) {
+      navigator.share({ title: c.name, text: text, url: url }).catch(function (err) {
+        if (!err || err.name !== "AbortError") copy();
+      });
+    } else {
+      copy();
+    }
+  });
+
+  // ---- start ----
+  bag = shuffle(CARDS.map(function (_, i) { return i; }));
+  var start = fromHash();
+  if (start !== -1) take(start); else start = draw(-1);
+  push(start, 0);
+})();
+</script>
+</body>
+</html>
