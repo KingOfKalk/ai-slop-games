@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E9ECE6">
+<title>Skandal-Quartett BRD</title>
+<style>
+:root{
+  --paper:#E9ECE6;--ink:#1C2321;--muted:#4A5552;--line:#CDD3CC;--empty:#C4CBC4;
+  --disp:ui-serif,'New York',Georgia,'Noto Serif',serif;
+  --body:'Avenir Next Condensed','sans-serif-condensed','Roboto Condensed',system-ui,-apple-system,Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--paper:#171C1B;--ink:#E6EAE4;--muted:#A9B3AE;--line:#39423F;--empty:#3A4340}
+}
+:root[data-theme="dark"]{--paper:#171C1B;--ink:#E6EAE4;--muted:#A9B3AE;--line:#39423F;--empty:#3A4340}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--body);
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+#stage{height:100%;width:100%;container-type:size;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer}
+.card{
+  /* 1 Designeinheit: skaliert die 3 Schriftgrößen so, dass alles ohne Scrollen passt */
+  --u:min(100cqw / 420, 100cqh / 720);
+  --fs-s:calc(var(--u) * 15);--fs-m:calc(var(--u) * 20);--fs-l:calc(var(--u) * 38);
+  --pad:calc(var(--u) * 22);
+  height:100%;width:100%;display:flex;flex-direction:column;background:var(--paper);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);
+}
+.head{flex:0 0 auto;background:var(--g);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:calc(var(--u)*14) var(--pad)}
+.code{font-family:var(--disp);font-weight:700;font-size:var(--fs-l);line-height:1}
+.grp{font-size:var(--fs-s);font-weight:600;text-align:right}
+.main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(var(--u)*16) var(--pad) calc(var(--u)*12);gap:calc(var(--u)*10)}
+h1{margin:0;font-family:var(--disp);font-weight:700;font-size:var(--fs-l);line-height:1.08;text-wrap:balance}
+.who{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:calc(var(--u)*8)}
+.person{font-size:var(--fs-m);font-weight:600;line-height:1.2}
+.party{flex-shrink:0;font-size:var(--fs-s);font-weight:600;padding:.15em .55em;border:1.5px solid var(--ink)}
+p{margin:0;font-size:var(--fs-s);line-height:1.38;text-wrap:pretty}
+.kz{font-size:var(--fs-m);font-weight:600;line-height:1.2;color:var(--gt)}
+.stats{display:flex;flex-direction:column;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:30% minmax(0,1fr) 14%;align-items:center;column-gap:10px;
+  min-height:calc(var(--u)*29);border-top:1px solid var(--line)}
+.lbl{font-size:var(--fs-s);color:var(--muted)}
+.val{font-family:var(--disp);font-weight:700;font-size:var(--fs-m);text-align:right}
+.bar{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:calc(var(--u)*3);max-width:calc(var(--u)*170)}
+.bar i{display:block;height:calc(var(--u)*10);background:var(--empty)}
+.bar i.on{background:var(--g)}
+.b{font-weight:600}
+.foot{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;font-size:var(--fs-s);color:var(--muted);line-height:1.3}
+.foot a{color:var(--muted)}
+.hint{flex-shrink:0;text-align:right}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card{--gt:color-mix(in srgb,var(--g) 45%,#fff)}}
+:root[data-theme="dark"] .card{--gt:color-mix(in srgb,var(--g) 45%,#fff)}
+.card{--gt:var(--g)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card{--gt:color-mix(in srgb,var(--g) 45%,#fff)}}
+@media (prefers-reduced-motion: no-preference){.card.in{animation:in .22s ease-out}@keyframes in{from{opacity:.2;transform:translateY(6px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+<main id="stage" aria-live="polite" title="Doppeltippen für eine neue Karte"></main>
+
+<!-- DATEN: neue Karten einfach unten in "karten" anhängen. Gruppe = erster Buchstabe des Codes. -->
+<script type="application/json" id="daten">
+{
+ "stand": "September 2026",
+ "hinweis": "Empörung, Geld im Spiel, Karriere-Knick und Nachhall sind redaktionelle Einschätzungen (1-10). Jahr, Personen, Zahlen und Folgen sind belegt.",
+ "gruppen": {
+  "A": {
+   "name": "Kalter Krieg & Geheimdienste",
+   "farbe": "#2F4A7A"
+  },
+  "B": {
+   "name": "Schwarze Kassen",
+   "farbe": "#8A2A2A"
+  },
+  "C": {
+   "name": "Gefälligkeiten & Lobby",
+   "farbe": "#6E5210"
+  },
+  "D": {
+   "name": "Steuergeld versenkt",
+   "farbe": "#245E63"
+  },
+  "E": {
+   "name": "Pandemie & Finanzmarkt",
+   "farbe": "#3E5F2A"
+  },
+  "F": {
+   "name": "Doktor weg",
+   "farbe": "#5B3D7A"
+  },
+  "G": {
+   "name": "Affären in den Ländern",
+   "farbe": "#8A4A1C"
+  },
+  "H": {
+   "name": "Kleine Vorteile, großer Fall",
+   "farbe": "#4B4F58"
+  }
+ },
+ "karten": [
+  {
+   "code": "A1",
+   "titel": "Spiegel-Affäre",
+   "person": "Franz Josef Strauß",
+   "partei": "CSU",
+   "jahr": 1962,
+   "text": "Nach dem Artikel \"Bedingt abwehrbereit\" lässt die Bundesanwaltschaft die Spiegel-Redaktion besetzen, Vorwurf Landesverrat. Der Verteidigungsminister täuscht den Bundestag über seine Rolle.",
+   "kennzahl": "103 Tage U-Haft für Rudolf Augstein",
+   "folge": "FDP-Minister treten zurück, Strauß verliert 1962 sein Ministeramt. Später Grundsatzurteil zur Pressefreiheit.",
+   "quelle": "bundesarchiv.de, planet-wissen.de",
+   "links": [
+    "https://www.bundesarchiv.de/themen-entdecken/online-entdecken/geschichtsgalerien/der-vorwurf-lautet-landesverrat/",
+    "https://www.planet-wissen.de/geschichte/deutsche_geschichte/politische_skandale/pwiespiegelaffaere100.html"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 1,
+    "karriere": 7,
+    "nachhall": 10
+   }
+  },
+  {
+   "code": "A2",
+   "titel": "Guillaume-Affäre",
+   "person": "Willy Brandt",
+   "partei": "SPD",
+   "jahr": 1974,
+   "text": "Brandts persönlicher Referent Günter Guillaume wird als Stasi-Spion enttarnt. Der Verfassungsschutz hatte schon seit Mai 1973 einen Verdacht und ließ ihn weiter im Amt.",
+   "kennzahl": "18 Jahre unerkannt in der Bundesrepublik",
+   "folge": "Brandt tritt im Mai 1974 als Bundeskanzler zurück. Guillaume erhält 13 Jahre Haft.",
+   "quelle": "planet-wissen.de, stasi-mediathek.de",
+   "links": [
+    "https://www.planet-wissen.de/geschichte/persoenlichkeiten/willy_brandt/spione-ddr-brd-guenter-guillaume-100.html",
+    "https://www.stasi-mediathek.de/fileadmin/pdf/dok1534.pdf"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 1,
+    "karriere": 10,
+    "nachhall": 8
+   }
+  },
+  {
+   "code": "A3",
+   "titel": "Lauschangriff Traube",
+   "person": "Werner Maihofer",
+   "partei": "FDP",
+   "jahr": 1977,
+   "text": "Der Verfassungsschutz verwanzt heimlich die Wohnung des Atommanagers Klaus Traube, fälschlich verdächtigt der RAF-Nähe. Der Spiegel deckt die illegale Aktion 1977 auf.",
+   "kennzahl": "Kein Beleg für RAF-Kontakte",
+   "folge": "Traube verliert seinen Job. Innenminister Maihofer tritt 1978 zurück.",
+   "quelle": "en.wikipedia.org (Klaus Traube, W. Maihofer)",
+   "links": [
+    "https://en.wikipedia.org/wiki/Klaus_Traube",
+    "https://en.wikipedia.org/wiki/Werner_Maihofer"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 1,
+    "karriere": 7,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "A4",
+   "titel": "Kießling-Affäre",
+   "person": "Manfred Wörner",
+   "partei": "CDU",
+   "jahr": 1984,
+   "text": "Der Verteidigungsminister schickt General Günter Kießling als angebliches \"Sicherheitsrisiko\" in den Ruhestand. Die Belege des MAD sind Gerüchte aus Kölner Kneipen.",
+   "kennzahl": "Rehabilitierung am 1. Februar 1984",
+   "folge": "Kohl rehabilitiert Kießling und lehnt Wörners Rücktrittsangebot ab. Staatssekretär muss gehen.",
+   "quelle": "bpb.de, freitag.de",
+   "links": [
+    "https://www.bpb.de/themen/zeit-kulturgeschichte/deutschland-chronik/132068/1-februar-1984/",
+    "https://www.freitag.de/autoren/georg-fuelberth/1984-xy-ungeloest"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 1,
+    "karriere": 3,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "B1",
+   "titel": "Flick-Affäre",
+   "person": "Otto Graf Lambsdorff",
+   "partei": "FDP",
+   "jahr": 1982,
+   "text": "Der Flick-Konzern bekommt eine Steuerbefreiung, zeitnah fließen Spenden an die FDP. Später zeigt sich: Auch CDU/CSU und SPD nahmen illegales Flick-Geld.",
+   "kennzahl": "Rund 1.800 Ermittlungsverfahren",
+   "folge": "Lambsdorff tritt 1984 zurück, 1987 Verurteilung wegen Steuerhinterziehung. Barzel gibt Bundestagspräsidium ab.",
+   "quelle": "germanhistorydocs.org, wissen.de",
+   "links": [
+    "https://germanhistorydocs.org/de/zwei-deutsche-staaten-1961-1989/ghdi:image-2473",
+    "https://www.wissen.de/lexikon/parteispendenaffaere"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 7,
+    "karriere": 6,
+    "nachhall": 9
+   }
+  },
+  {
+   "code": "B2",
+   "titel": "CDU-Spendenaffäre",
+   "person": "Helmut Kohl",
+   "partei": "CDU",
+   "jahr": 1999,
+   "text": "Der Altkanzler räumt ein, 1,5 bis 2 Mio. DM Spenden an den Büchern vorbei angenommen zu haben. Die Spender nennt er nicht, er beruft sich auf sein \"Ehrenwort\".",
+   "kennzahl": "41,3 Mio. DM Sanktion gegen die CDU",
+   "folge": "U-Ausschuss ab Dezember 1999. Generalsekretärin Merkel distanziert sich öffentlich, die Ära Kohl endet.",
+   "quelle": "germanhistorydocs.org",
+   "links": [
+    "https://germanhistorydocs.org/de/ein-neues-deutschland-1990-2023/alt-kanzler-kohl-vor-dem-untersuchungsausschuss-zur-cdu-spendenaffaere-29-juni-2000",
+    "https://germanhistorydocs.org/de/ein-neues-deutschland-1990-2023/ghdi:document-3793"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 7,
+    "karriere": 8,
+    "nachhall": 9
+   }
+  },
+  {
+   "code": "B3",
+   "titel": "Hessen-Schwarzgeld",
+   "person": "Manfred Kanther",
+   "partei": "CDU",
+   "jahr": 2000,
+   "text": "Die Hessen-CDU schafft 1983 Millionen auf Schweizer Konten. Die Rückflüsse tarnt der Schatzmeister als Erbschaften verstorbener Juden, eine erfundene Legende.",
+   "kennzahl": "Rund 20,8 Mio. DM in der Schweiz",
+   "folge": "Kanther legt sein Bundestagsmandat nieder. 2007: 54.000 Euro Geldstrafe wegen Untreue.",
+   "quelle": "taz.de",
+   "links": [
+    "https://taz.de/Ende-nicht-in-Sicht/!1214162/",
+    "https://taz.de/Kanther-der-Prinz-und-der-Geldbote/!1118083/",
+    "https://taz.de/Archiv/!s=&Thesaurus=WI08+ZZF/"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 7,
+    "karriere": 7,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "B4",
+   "titel": "AfD-Spendenaffäre",
+   "person": "Alice Weidel",
+   "partei": "AfD",
+   "jahr": 2018,
+   "text": "Eine Schweizer Pharmafirma überweist 2017 in Tranchen 132.000 Euro an Weidels Kreisverband Bodensee. Spenden aus dem Nicht-EU-Ausland sind verboten.",
+   "kennzahl": "Rund 396.000 Euro Strafzahlung",
+   "folge": "Die Partei muss zahlen. Ermittlungen gegen Weidel selbst 2021 eingestellt.",
+   "quelle": "lto.de",
+   "links": [
+    "https://www.lto.de/recht/nachrichten/n/parteispende-afd-parteispendenaffre-alice-weidel-ermittlungen-schweiz-pharmaunternehmen-eingestellt"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 4,
+    "karriere": 2,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "C1",
+   "titel": "Mövenpick-Spende",
+   "person": "FDP-Parteispitze",
+   "partei": "FDP",
+   "jahr": 2010,
+   "text": "Eine Firma des Mövenpick-Miteigentümers August von Finck spendet der FDP 1,1 Mio. Euro. Kurz darauf sinkt die Mehrwertsteuer für Hotelübernachtungen von 19 auf 7 Prozent.",
+   "kennzahl": "1,1 Mio. Euro in 2008 und 2009",
+   "folge": "Spende laut Bundestagsverwaltung legal. Umfragen sinken, Spott als \"Mövenpick-Partei\".",
+   "quelle": "tagesspiegel.de, taz.de",
+   "links": [
+    "https://www.tagesspiegel.de/politik/fdp-bekommt-die-quittung-fur-die-spende-3833443.html",
+    "https://taz.de/FDP-will-nicht-mehr-Moevenpick-Partei-sein/!413156/"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 5,
+    "karriere": 2,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "C2",
+   "titel": "Wulff-Affäre",
+   "person": "Christian Wulff",
+   "partei": "CDU",
+   "jahr": 2012,
+   "text": "Ein privater 500.000-Euro-Hauskredit, im Landtag verschwiegen. Dazu Urlaube bei Unternehmerfreunden und ein Anruf beim Springer-Verlag.",
+   "kennzahl": "598 Tage im Amt, kürzeste Amtszeit",
+   "folge": "Rücktritt als Bundespräsident am 17.2.2012. 2014 rechtskräftiger Freispruch vom Vorwurf der Vorteilsannahme.",
+   "quelle": "tagesspiegel.de, t-online.de",
+   "links": [
+    "https://www.tagesspiegel.de/politik/freispruch-von-christian-wulff-ist-rechtskraftig-4822252.html",
+    "https://www.t-online.de/nachrichten/deutschland/gesellschaft/id_54080266/die-wulff-affaere-bis-zum-ruecktritt-als-bundespraesident.html"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 4,
+    "karriere": 10,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "C3",
+   "titel": "Aserbaidschan-Affäre",
+   "person": "Eduard Lintner, Karin Strenz",
+   "partei": "CSU / CDU",
+   "jahr": 2017,
+   "text": "Kaviar-Diplomatie: Aserbaidschan lässt Geld an Abgeordnete im Europarat fließen, um Abstimmungen zu beeinflussen. Ein Teil läuft über Lintner an Strenz.",
+   "kennzahl": "Über 3 Mio. Euro an Lintner (Anklage)",
+   "folge": "Lebenslanges Hausverbot im Europarat. OLG München: 9 Monate auf Bewährung für Lintner, Revision eingelegt.",
+   "quelle": "zdfheute.de, bundestag.de",
+   "links": [
+    "https://www.zdfheute.de/politik/aserbaidschan-affaere-prozess-bundestag-abgeordnete-union-100.html",
+    "https://dserver.bundestag.de/btd/20/012/2001216.pdf",
+    "https://www.leinetal24.de/welt/akzeptieren-aserbaidschan-affaere-csu-mann-will-korruptionsurteil-nicht-zr-93877361.html"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 6,
+    "karriere": 4,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "C4",
+   "titel": "Amthor-Affäre",
+   "person": "Philipp Amthor",
+   "partei": "CDU",
+   "jahr": 2020,
+   "text": "Der Abgeordnete wirbt per Brief beim Wirtschaftsminister für das Start-up Augustus Intelligence. Von der Firma erhält er Aktienoptionen und einen Direktorenposten.",
+   "kennzahl": "Aktienoptionen plus Direktorenposten",
+   "folge": "Verzicht auf Kandidatur für den CDU-Landesvorsitz MV. Transparenzregeln für Abgeordnete verschärft.",
+   "quelle": "abgeordnetenwatch.de, t-online.de",
+   "links": [
+    "https://www.abgeordnetenwatch.de/blog/lobbyismus/wie-philipp-amthor-zum-tueroeffner-fuer-augustus-intelligence-wurde",
+    "https://www.t-online.de/nachrichten/deutschland/parteien/id_88089508/lobbyismus-vorwurf-amthor-zieht-kandidatur-fuer-cdu-landesvorsitz-zurueck.html"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 3,
+    "karriere": 3,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "D1",
+   "titel": "Starfighter-Affäre",
+   "person": "Franz Josef Strauß",
+   "partei": "CSU",
+   "jahr": 1966,
+   "text": "Der unter Strauß beschaffte Kampfjet F-104G wird zum \"Witwenmacher\": Abstürze in Serie. Ein Untersuchungsausschuss weist 1980 den Bestechungsvorwurf zurück.",
+   "kennzahl": "269 Abstürze, 116 tote Piloten",
+   "folge": "Von 916 beschafften Jets stürzen 269 ab. Ausmusterung erst 1991.",
+   "quelle": "das-parlament.de",
+   "links": [
+    "https://www.das-parlament.de/panorama/kalenderblatt/hightech-jet-oder-witwenmacher"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 7,
+    "karriere": 2,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "D2",
+   "titel": "Euro Hawk",
+   "person": "Thomas de Maizière",
+   "partei": "CDU",
+   "jahr": 2013,
+   "text": "Die Aufklärungsdrohne bekommt keine Zulassung für den Luftraum, die Serienbeschaffung wird gestoppt. Gestartet wurde das Projekt schon unter Rot-Grün.",
+   "kennzahl": "Rund 600 Mio. Euro bis zum Stopp",
+   "folge": "Untersuchungsausschuss 2013, Rücktrittsforderungen. De Maizière bleibt im Amt.",
+   "quelle": "bundestag.de, abgeordnetenwatch.de",
+   "links": [
+    "https://www.bundestag.de/webarchiv/textarchiv/2013/46249753_kw35_sp_eurohawk-213310",
+    "https://www.abgeordnetenwatch.de/profile/joachim-pfeiffer/fragen-antworten/235638"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 8,
+    "karriere": 3,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "D3",
+   "titel": "Pkw-Maut",
+   "person": "Andreas Scheuer",
+   "partei": "CSU",
+   "jahr": 2019,
+   "text": "Der EuGH kippt die Maut, weil nur Inländer bei der Kfz-Steuer entlastet werden sollten. Die Betreiberverträge hatte Scheuer schon Ende 2018 unterschrieben.",
+   "kennzahl": "243 Mio. Euro Schadenersatz",
+   "folge": "Untersuchungsausschuss. Der Bund verzichtet auf Regress gegen Scheuer.",
+   "quelle": "beck-aktuell.de, t-online.de",
+   "links": [
+    "https://www.beck-aktuell.de/heute-im-recht/rechtspolitik-gesetzgebung/abwicklung-gescheiterter-pkw-maut-geht-voran-2023-10-18",
+    "https://www.t-online.de/nachrichten/deutschland/id_100310228/pkw-maut-bund-klagt-nicht-gegen-ex-verkehrsminister-scheuer.html"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 8,
+    "karriere": 5,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "D4",
+   "titel": "Berateraffäre",
+   "person": "Ursula von der Leyen",
+   "partei": "CDU",
+   "jahr": 2019,
+   "text": "Der Bundesrechnungshof zweifelt an teuren Beraterverträgen im Verteidigungsministerium, Vorwürfe bis zur Vetternwirtschaft. Dann werden die Handydaten der Ministerin gelöscht.",
+   "kennzahl": "Dreistelliger Millionenbetrag für Berater",
+   "folge": "Untersuchungsausschuss. Von der Leyen räumt Vergabeverstöße ein, da schon EU-Kommissionschefin.",
+   "quelle": "t-online.de",
+   "links": [
+    "https://www.t-online.de/nachrichten/deutschland/id_87331074/berateraffaere-von-der-leyen-sagt-im-untersuchungsausschuss-aus.html",
+    "https://www.t-online.de/nachrichten/deutschland/militaer-verteidigung/id_87038486/von-der-leyens-handy-gruener-erstattet-anzeige-wegen-geloeschter-daten.html"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 8,
+    "karriere": 2,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "E1",
+   "titel": "Masken-Beschaffung",
+   "person": "Jens Spahn",
+   "partei": "CDU",
+   "jahr": 2020,
+   "text": "Open-House-Verfahren: Wer FFP2-Masken für 4,50 Euro liefern kann, bekommt den Zuschlag. Folge sind Überbeschaffung, vernichtete Masken und Klagen von Lieferanten.",
+   "kennzahl": "5,7 Mrd. Masken für 5,9 Mrd. Euro",
+   "folge": "Klagen über rund 2,3 Mrd. Euro. Sudhof-Bericht 2025. Spahn: würde vieles heute anders entscheiden.",
+   "quelle": "zdfheute.de, nordkurier.de",
+   "links": [
+    "https://www.zdfheute.de/politik/deutschland/jens-spahn-masken-corona-steuern-verschwendung-100.html",
+    "https://www.nordkurier.de/politik/maskenbericht-wird-abgeordneten-mit-schwaerzungen-vorgelegt-spahn-nimmt-stellung-3687118"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 10,
+    "karriere": 2,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "E2",
+   "titel": "Masken-Provisionen",
+   "person": "Georg Nüßlein, Nikolas Löbel",
+   "partei": "CSU / CDU",
+   "jahr": 2021,
+   "text": "Unionsabgeordnete kassieren in der Pandemie Provisionen dafür, dass sie Masken an Behörden und Firmen vermitteln.",
+   "kennzahl": "660.000 und 250.000 Euro Provision",
+   "folge": "Beide verlassen ihre Partei. BGH 2022: keine Bestechlichkeit, aber eine Strafbarkeitslücke.",
+   "quelle": "aerzteblatt.de, tagesspiegel.de",
+   "links": [
+    "https://www.aerzteblatt.de/nachrichten/135883/Maskenaffaere-Bundesgerichtshof-sieht-Tatbestand-der-Bestechlichkeit-nicht-erfuellt",
+    "https://www.tagesspiegel.de/politik/unionspolitiker-nusslein-und-lobel-verlassen-ihre-partei-4234975.html"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 5,
+    "karriere": 7,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "E3",
+   "titel": "Cum-Ex / Warburg",
+   "person": "Olaf Scholz",
+   "partei": "SPD",
+   "jahr": 2020,
+   "text": "Nach Treffen des Hamburger Bürgermeisters mit den Eigentümern der Warburg-Bank lässt das Finanzamt 2016 eine Rückforderung verjähren. Scholz bestreitet Einflussnahme, beruft sich auf Erinnerungslücken.",
+   "kennzahl": "47 Mio. Euro Steuern verjährt",
+   "folge": "Hamburger U-Ausschuss ab 2020. Die Bank muss später per Gericht über 176 Mio. Euro zurückzahlen.",
+   "quelle": "rheinpfalz.de, nordkurier.de",
+   "links": [
+    "https://www.rheinpfalz.de/politik_artikel,-der-kanzler-und-seine-erinnerungsl%C3%BCcken-_arid,5394070.html",
+    "https://www.nordkurier.de/politik/cum-ex-affaere-widersprach-sich-scholz-bei-befragungen-1540179"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 7,
+    "karriere": 3,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "E4",
+   "titel": "Wirecard",
+   "person": "Olaf Scholz (Finanzaufsicht)",
+   "partei": "SPD / CDU",
+   "jahr": 2020,
+   "text": "Der DAX-Konzern gesteht: 1,9 Mrd. Euro aus der Bilanz sind nicht auffindbar. Die dem Finanzministerium unterstellte BaFin hatte Warnungen jahrelang nicht verfolgt.",
+   "kennzahl": "1,9 Mrd. Euro Luftbuchungen",
+   "folge": "U-Ausschuss 2020-21. Opposition sieht kollektives Aufsichtsversagen und Scholz politisch verantwortlich.",
+   "quelle": "beck-aktuell.de, abendzeitung-muenchen.de",
+   "links": [
+    "https://www.beck-aktuell.de/heute-im-recht/rechtspolitik-gesetzgebung/opposition-sieht-kollektives-aufsichtsversagen-bei-wirecard-2021-06-07",
+    "https://www.abendzeitung-muenchen.de/politik/fall-wirecard-finanzminister-scholz-unter-druck-art-707567"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 10,
+    "karriere": 3,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "F1",
+   "titel": "Plagiat Guttenberg",
+   "person": "Karl-Theodor zu Guttenberg",
+   "partei": "CSU",
+   "jahr": 2011,
+   "text": "Große Teile der Doktorarbeit des Verteidigungsministers sind abgeschrieben. Die Uni Bayreuth sieht vorsätzliche Täuschung.",
+   "kennzahl": "Titel weg, alle Ämter weg",
+   "folge": "Rücktritt im März 2011 nach heftigen Protesten aus Opposition und Wissenschaft.",
+   "quelle": "news4teachers.de, evangelisch.de",
+   "links": [
+    "https://www.news4teachers.de/2014/03/plagiatsvorwuerfe-und-was-aus-ihnen-wurde/",
+    "https://www.evangelisch.de/inhalte/104807/12-05-2011"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 1,
+    "karriere": 9,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "F2",
+   "titel": "Plagiat Koch-Mehrin",
+   "person": "Silvana Koch-Mehrin",
+   "partei": "FDP",
+   "jahr": 2011,
+   "text": "Die Plattform VroniPlag findet auf fast 28 Prozent der Seiten ihrer Dissertation Plagiate. Die Uni Heidelberg entzieht den Doktorgrad.",
+   "kennzahl": "Über 120 Plagiatsstellen",
+   "folge": "Rücktritt als Vizepräsidentin des EU-Parlaments. Ihre Klage scheitert 2013.",
+   "quelle": "evangelisch.de, news4teachers.de",
+   "links": [
+    "https://www.evangelisch.de/inhalte/105233/15-06-2011",
+    "https://www.evangelisch.de/inhalte/104576/20-04-2011",
+    "https://www.news4teachers.de/2014/03/plagiatsvorwuerfe-und-was-aus-ihnen-wurde/"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 1,
+    "karriere": 6,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "F3",
+   "titel": "Plagiat Schavan",
+   "person": "Annette Schavan",
+   "partei": "CDU",
+   "jahr": 2013,
+   "text": "Ausgerechnet die Bildungsministerin: Die Uni Düsseldorf attestiert vorsätzliche Täuschung durch Plagiat und erkennt ihr den Titel ab.",
+   "kennzahl": "Rücktritt wenige Tage nach Aberkennung",
+   "folge": "Klage gegen die Aberkennung scheitert. Ein Jahr später Botschafterin beim Vatikan.",
+   "quelle": "tagesspiegel.de",
+   "links": [
+    "https://www.tagesspiegel.de/23970956.html"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 1,
+    "karriere": 7,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "F4",
+   "titel": "Plagiat Giffey",
+   "person": "Franziska Giffey",
+   "partei": "SPD",
+   "jahr": 2021,
+   "text": "Die FU Berlin erteilt 2019 nur eine Rüge. Nach Kritik an diesem Bescheid prüft sie neu und entzieht den Titel im Juni 2021.",
+   "kennzahl": "Rücktritt als Familienministerin",
+   "folge": "Giffey geht im Mai 2021, bleibt Berliner Spitzenkandidatin und wird noch 2021 Regierende Bürgermeisterin.",
+   "quelle": "t-online.de, berliner-zeitung.de",
+   "links": [
+    "https://www.t-online.de/nachrichten/deutschland/parteien/id_90061656/si_8/diesen-politikern-wurde-ihre-doktorarbeit-fast-zum-verhaengnis.html",
+    "https://www.berliner-zeitung.de/article/kommentar-rueder-gute-franzi-ruecktrituecktritt-franziska-giffey-familienministerin--160410"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 1,
+    "karriere": 4,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "G1",
+   "titel": "Filbinger-Affäre",
+   "person": "Hans Filbinger",
+   "partei": "CDU",
+   "jahr": 1978,
+   "text": "Der Ministerpräsident war als Marinerichter an Todesurteilen beteiligt. Zuerst erinnert er sich nur an eines, dann werden weitere Fälle bekannt.",
+   "kennzahl": "4 Todesurteile beantragt oder gefällt",
+   "folge": "Rücktritt als Ministerpräsident von Baden-Württemberg am 7. August 1978.",
+   "quelle": "lpb-bw.de, juedische-allgemeine.de",
+   "links": [
+    "https://www.lpb-bw.de/trauerrede-filbinger",
+    "https://www.juedische-allgemeine.de/politik/1978-nachmann-und-filbinger"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 1,
+    "karriere": 9,
+    "nachhall": 8
+   }
+  },
+  {
+   "code": "G2",
+   "titel": "Barschel-Affäre",
+   "person": "Uwe Barschel",
+   "partei": "CDU",
+   "jahr": 1987,
+   "text": "Sein Medienreferent Pfeiffer bespitzelt Herausforderer Engholm und stellt anonyme Anzeige. Barschel gibt sein \"Ehrenwort\", tritt zurück und wird in Genf tot aufgefunden.",
+   "kennzahl": "Todesumstände bis heute ungeklärt",
+   "folge": "Ausschuss 1995: persönliche Verantwortung nicht nachweisbar, die politische bleibt.",
+   "quelle": "deutsche-biographie.de, wissen.de",
+   "links": [
+    "https://www.deutsche-biographie.de/dbo007540.html",
+    "https://www.wissen.de/node/44515"
+   ],
+   "werte": {
+    "empoerung": 10,
+    "geld": 1,
+    "karriere": 10,
+    "nachhall": 8
+   }
+  },
+  {
+   "code": "G3",
+   "titel": "Schubladenaffäre",
+   "person": "Björn Engholm",
+   "partei": "SPD",
+   "jahr": 1993,
+   "text": "Engholm muss zugeben, früher von den Machenschaften gegen ihn gewusst zu haben, als er 1987 ausgesagt hatte. Zudem floss SPD-Geld an Pfeiffer.",
+   "kennzahl": "50.000 DM in bar an Pfeiffer",
+   "folge": "Rücktritt von allen Spitzenämtern im Mai 1993, als SPD-Chef und Kanzlerkandidat.",
+   "quelle": "taz.de, leinetal24.de",
+   "links": [
+    "https://taz.de/!618721",
+    "https://www.leinetal24.de/welt/politiker-ihre-affaeren-zr-423100.html"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 3,
+    "karriere": 9,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "G4",
+   "titel": "Thüringen-Wahl",
+   "person": "Thomas Kemmerich",
+   "partei": "FDP",
+   "jahr": 2020,
+   "text": "Mit Stimmen von FDP, CDU und AfD wird Kemmerich überraschend Ministerpräsident, 45 zu 44 gegen Ramelow. Erstmals hilft die AfD einem Regierungschef ins Amt.",
+   "kennzahl": "Rücktritt nach 3 Tagen",
+   "folge": "Bundesweite Proteste. CDU-Chefin Kramp-Karrenbauer kündigt ihren Rückzug an.",
+   "quelle": "lto.de, deutsche-wirtschafts-nachrichten.de",
+   "links": [
+    "https://www.lto.de/recht/hintergruende/h/thueringen-fdp-cdu-afd-ministerpraesident-neuwahlen-landtag-verfassung",
+    "https://deutsche-wirtschafts-nachrichten.de/502195"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 1,
+    "karriere": 7,
+    "nachhall": 8
+   }
+  },
+  {
+   "code": "H1",
+   "titel": "Briefbogen-Affäre",
+   "person": "Jürgen Möllemann",
+   "partei": "FDP",
+   "jahr": 1993,
+   "text": "Auf Briefpapier des Wirtschaftsministeriums empfiehlt der Minister Supermarktketten den Einkaufswagen-Chip eines angeheirateten Vetters.",
+   "kennzahl": "Rücktritt im Januar 1993",
+   "folge": "Erst heißt es, ein Mitarbeiter habe unterschrieben. Dann räumt Möllemann die eigene Unterschrift ein.",
+   "quelle": "csmonitor.com, taz.de",
+   "links": [
+    "https://csmonitor.com/1993/0104/04061.html",
+    "https://taz.de/Urlaubsgeld-fuer-immer/!1636880/"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 2,
+    "karriere": 7,
+    "nachhall": 3
+   }
+  },
+  {
+   "code": "H2",
+   "titel": "Putzfrau-Affäre",
+   "person": "Günther Krause",
+   "partei": "CDU",
+   "jahr": 1993,
+   "text": "Der Verkehrsminister soll eine Putzfrau im Privathaus vom Arbeitsamt bezahlen lassen. Dazu kommt ein privater Umzug auf Staatskosten.",
+   "kennzahl": "Rücktritt im Mai 1993",
+   "folge": "Die Putzfrau-Vorwürfe werden nie bewiesen. Es ist nicht die erste Krause-Affäre.",
+   "quelle": "rheinpfalz.de, nordkurier.de",
+   "links": [
+    "https://www.rheinpfalz.de/politik_artikel,-teilnehmer-des-dschungelcamps-der-unaufhaltsame-abstieg-des-g%C3%BCnther-krause-_arid,1569501.html",
+    "https://www.nordkurier.de/kultur/die-irrsten-geschichten-zu-dschungelcamp-mann-gunther-krause-(cdu)-1181519"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 2,
+    "karriere": 8,
+    "nachhall": 2
+   }
+  },
+  {
+   "code": "H3",
+   "titel": "Bonusmeilen-Affäre",
+   "person": "Cem Özdemir, Gregor Gysi",
+   "partei": "Grüne / PDS",
+   "jahr": 2002,
+   "text": "Dienstlich gesammelte Lufthansa-Meilen für Privatflüge, obwohl eine Vereinbarung im Bundestag das untersagt. Bei Özdemir kommt ein Privatkredit von Hunzinger hinzu.",
+   "kennzahl": "Gysi tritt als Senator zurück",
+   "folge": "Özdemir zieht sich aus der Bundespolitik zurück. Viele Arbeitgeber verbieten danach private Dienstmeilen.",
+   "quelle": "berliner-zeitung.de, tagesspiegel.de",
+   "links": [
+    "https://www.berliner-zeitung.de/article/harte-landung-von-cem-oezdemir-579697",
+    "https://www.tagesspiegel.de/wirtschaft/archiv/2012/04/11"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 2,
+    "karriere": 6,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "H4",
+   "titel": "Trauzeugen-Affäre",
+   "person": "Patrick Graichen",
+   "partei": "Grüne",
+   "jahr": 2023,
+   "text": "Der Staatssekretär wählt seinen Trauzeugen mit aus, der dena-Chef werden soll. Dann billigt er ein Förderprojekt des BUND-Verbands, in dessen Vorstand seine Schwester sitzt.",
+   "kennzahl": "Knapp 600.000 Euro Förderung",
+   "folge": "Habeck versetzt Graichen im Mai 2023 in den einstweiligen Ruhestand. Geld war noch nicht geflossen.",
+   "quelle": "tagesspiegel.de, nordkurier.de",
+   "links": [
+    "https://www.tagesspiegel.de/politik/trauzeugen-affare-wie-die-grunen-graichen-fallen-liessen-9841358.html",
+    "https://www.nordkurier.de/politik/habeck-haelt-an-graichen-fest-1603329"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 4,
+    "karriere": 7,
+    "nachhall": 5
+   }
+  }
+ ]
+}
+</script>
+
+<script>
+(function(){
+  var D = JSON.parse(document.getElementById('daten').textContent);
+  var stage = document.getElementById('stage');
+  var cur = -1;
+  var W = [['empoerung','Empörung'],['geld','Geld im Spiel'],['karriere','Karriere-Knick'],['nachhall','Nachhall']];
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function bar(v){var h='';for(var i=0;i<10;i++)h+='<i'+(i<v?' class="on"':'')+'></i>';return '<div class="bar" aria-hidden="true">'+h+'</div>';}
+  function render(i){
+    var k = D.karten[i], g = D.gruppen[k.code.charAt(0)] || {name:'',farbe:'#4B4F58'};
+    var rows = '<div class="row"><div class="lbl">Jahr</div><div class="lbl">älter sticht</div><div class="val">'+esc(k.jahr)+'</div></div>';
+    W.forEach(function(w){var v=k.werte[w[0]];rows+='<div class="row"><div class="lbl">'+w[1]+'</div>'+bar(v)+'<div class="val" aria-label="'+w[1]+' '+v+' von 10">'+v+'</div></div>';});
+    var link = k.links && k.links[0] ? '<a href="'+esc(k.links[0])+'" target="_blank" rel="noopener">'+esc(k.quelle)+'</a>' : esc(k.quelle);
+    stage.innerHTML =
+      '<article class="card in" style="--g:'+esc(g.farbe)+'">'+
+        '<header class="head"><div class="code">'+esc(k.code)+'</div><div class="grp">'+esc(g.name)+'</div></header>'+
+        '<div class="main">'+
+          '<div><h1>'+esc(k.titel)+'</h1><div class="who"><div class="person">'+esc(k.person)+'</div><div class="party">'+esc(k.partei)+'</div></div></div>'+
+          '<p>'+esc(k.text)+'</p>'+
+          '<div class="kz">'+esc(k.kennzahl)+'</div>'+
+          '<div class="stats">'+rows+'</div>'+
+          '<p><span class="b">Folge: </span>'+esc(k.folge)+'</p>'+
+          '<div class="foot"><div>Quelle: '+link+'</div><div class="hint">'+(i+1)+'/'+D.karten.length+'</div></div>'+
+        '</div>'+
+      '</article>';
+    document.title = k.code+' '+k.titel+' | Skandal-Quartett';
+    try{ document.querySelector('meta[name=theme-color]').setAttribute('content', g.farbe); }catch(e){}
+  }
+  function next(){
+    var n = D.karten.length; if(!n) return;
+    var i; do{ i = Math.floor(Math.random()*n); } while(n>1 && i===cur);
+    cur = i; render(i);
+  }
+  // Doppeltipp (Touch) und Doppelklick (Maus), ohne Doppel-Auslösung
+  var last = 0, lx = 0, ly = 0;
+  stage.addEventListener('pointerup', function(e){
+    if(e.target.closest('a')) return;
+    var t = Date.now();
+    if(t - last < 350 && Math.abs(e.clientX-lx) < 40 && Math.abs(e.clientY-ly) < 40){ last = 0; next(); }
+    else { last = t; lx = e.clientX; ly = e.clientY; }
+  });
+  stage.addEventListener('dblclick', function(e){ e.preventDefault(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key===' '||e.key==='Enter'||e.key==='ArrowRight'){ e.preventDefault(); next(); }
+  });
+  next();
+})();
+</script>
+</body>
+</html>
