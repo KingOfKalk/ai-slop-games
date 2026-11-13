@@ -6,6 +6,7 @@ Simple browser games, hosted on GitHub Pages.
 
 - [El Clásico Bingo](https://kingofkalk.github.io/ai-slop-games/el-clasico-bingo/) - `el-clasico-bingo/`
 - [Bahn-Verspätungswürfel](https://kingofkalk.github.io/ai-slop-games/bahn-verspaetungs-wuerfel/) - `bahn-verspaetungs-wuerfel/`
+- [Denkfehler in Diskussionen](https://kingofkalk.github.io/ai-slop-games/denkfehler/) - `denkfehler/`
 
 ## Adding a game
 
@@ -22,4 +23,5 @@ Simple browser games, hosted on GitHub Pages.
 ```bash
 node tests/el-clasico-bingo.test.js
 node tests/bahn-verspaetungs-wuerfel.test.js
+node tests/denkfehler.test.js
 ```
