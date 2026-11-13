@@ -7,6 +7,8 @@ Simple browser games, hosted on GitHub Pages.
 - [El Clásico Bingo](https://kingofkalk.github.io/ai-slop-games/el-clasico-bingo/) - `el-clasico-bingo/`
 - [Bahn-Verspätungswürfel](https://kingofkalk.github.io/ai-slop-games/bahn-verspaetungs-wuerfel/) - `bahn-verspaetungs-wuerfel/`
 - [Denkfehler in Diskussionen](https://kingofkalk.github.io/ai-slop-games/denkfehler/) - `denkfehler/`
+- [Skandal-Quartett BRD](https://kingofkalk.github.io/ai-slop-games/skandal-quartett-brd/) - `skandal-quartett-brd/`
+- [Skandal-Quartett SPD](https://kingofkalk.github.io/ai-slop-games/skandal-quartett-spd/) - `skandal-quartett-spd/`
 
 ## Adding a game
 
@@ -24,4 +26,6 @@ Simple browser games, hosted on GitHub Pages.
 node tests/el-clasico-bingo.test.js
 node tests/bahn-verspaetungs-wuerfel.test.js
 node tests/denkfehler.test.js
+node tests/skandal-quartett-brd.test.js
+node tests/skandal-quartett-spd.test.js
 ```

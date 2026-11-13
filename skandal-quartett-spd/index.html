@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E9ECE6">
+<title>Skandal-Quartett SPD</title>
+<style>
+:root{
+  --paper:#E9ECE6;--ink:#1C2321;--muted:#4A5552;--line:#CDD3CC;--empty:#C4CBC4;
+  --disp:ui-serif,'New York',Georgia,'Noto Serif',serif;
+  --body:'Avenir Next Condensed','sans-serif-condensed','Roboto Condensed',system-ui,-apple-system,Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--paper:#171C1B;--ink:#E6EAE4;--muted:#A9B3AE;--line:#39423F;--empty:#3A4340}
+}
+:root[data-theme="dark"]{--paper:#171C1B;--ink:#E6EAE4;--muted:#A9B3AE;--line:#39423F;--empty:#3A4340}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--body);
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+#stage{height:100%;width:100%;container-type:size;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer}
+.card{
+  /* 1 Designeinheit: skaliert die 3 Schriftgrößen so, dass alles ohne Scrollen passt */
+  --u:min(100cqw / 420, 100cqh / 720);
+  --fs-s:calc(var(--u) * 15);--fs-m:calc(var(--u) * 20);--fs-l:calc(var(--u) * 38);
+  --pad:calc(var(--u) * 22);
+  height:100%;width:100%;display:flex;flex-direction:column;background:var(--paper);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);
+}
+.head{flex:0 0 auto;background:var(--g);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:calc(var(--u)*14) var(--pad)}
+.code{font-family:var(--disp);font-weight:700;font-size:var(--fs-l);line-height:1}
+.grp{font-size:var(--fs-s);font-weight:600;text-align:right}
+.main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:space-between;
+  padding:calc(var(--u)*16) var(--pad) calc(var(--u)*12);gap:calc(var(--u)*10)}
+h1{margin:0;font-family:var(--disp);font-weight:700;font-size:var(--fs-l);line-height:1.08;text-wrap:balance}
+.who{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:calc(var(--u)*8)}
+.person{font-size:var(--fs-m);font-weight:600;line-height:1.2}
+.party{flex-shrink:0;font-size:var(--fs-s);font-weight:600;padding:.15em .55em;border:1.5px solid var(--ink)}
+p{margin:0;font-size:var(--fs-s);line-height:1.38;text-wrap:pretty}
+.kz{font-size:var(--fs-m);font-weight:600;line-height:1.2;color:var(--gt)}
+.stats{display:flex;flex-direction:column;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:30% minmax(0,1fr) 14%;align-items:center;column-gap:10px;
+  min-height:calc(var(--u)*29);border-top:1px solid var(--line)}
+.lbl{font-size:var(--fs-s);color:var(--muted)}
+.val{font-family:var(--disp);font-weight:700;font-size:var(--fs-m);text-align:right}
+.bar{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:calc(var(--u)*3);max-width:calc(var(--u)*170)}
+.bar i{display:block;height:calc(var(--u)*10);background:var(--empty)}
+.bar i.on{background:var(--g)}
+.b{font-weight:600}
+.foot{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;font-size:var(--fs-s);color:var(--muted);line-height:1.3}
+.foot a{color:var(--muted)}
+.hint{flex-shrink:0;text-align:right}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card{--gt:color-mix(in srgb,var(--g) 45%,#fff)}}
+:root[data-theme="dark"] .card{--gt:color-mix(in srgb,var(--g) 45%,#fff)}
+.card{--gt:var(--g)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .card{--gt:color-mix(in srgb,var(--g) 45%,#fff)}}
+@media (prefers-reduced-motion: no-preference){.card.in{animation:in .22s ease-out}@keyframes in{from{opacity:.2;transform:translateY(6px)}to{opacity:1;transform:none}}}
+</style>
+</head>
+<body>
+<main id="stage" aria-live="polite" title="Doppeltippen für eine neue Karte"></main>
+
+<!-- DATEN: neue Karten einfach unten in "karten" anhängen. Gruppe = erster Buchstabe des Codes. -->
+<script type="application/json" id="daten">
+{
+ "stand": "Oktober 2026",
+ "hinweis": "Empörung, Geld im Spiel, Karriere-Knick und Nachhall sind redaktionelle Einschätzungen (1-10). Jahr, Personen, Zahlen und Folgen sind belegt.",
+ "gruppen": {
+  "A": {
+   "name": "Spione, Spitzel & Lauscher",
+   "farbe": "#2F4A7A"
+  },
+  "B": {
+   "name": "Schwarze Kassen & Schmiergeld",
+   "farbe": "#8A2A2A"
+  },
+  "C": {
+   "name": "Nebenjobs & Vorteile",
+   "farbe": "#6E5210"
+  },
+  "D": {
+   "name": "Steuergeld verbrannt",
+   "farbe": "#245E63"
+  },
+  "E": {
+   "name": "Aufsicht & Kontrolle",
+   "farbe": "#3E5F2A"
+  },
+  "F": {
+   "name": "Gas & Gazprom",
+   "farbe": "#5B3D7A"
+  },
+  "G": {
+   "name": "Länder-Affären",
+   "farbe": "#8A4A1C"
+  },
+  "H": {
+   "name": "Lügen & Lebensläufe",
+   "farbe": "#4B4F58"
+  }
+ },
+ "karten": [
+  {
+   "code": "A1",
+   "titel": "Guillaume-Affäre",
+   "person": "Willy Brandt",
+   "partei": "SPD",
+   "jahr": 1974,
+   "text": "Brandts persönlicher Referent Günter Guillaume wird als Stasi-Spion enttarnt. Der Verfassungsschutz hatte schon seit Mai 1973 einen Verdacht und ließ ihn weiter im Amt.",
+   "kennzahl": "18 Jahre unerkannt in der Bundesrepublik",
+   "folge": "Brandt tritt im Mai 1974 als Bundeskanzler zurück. Guillaume erhält 13 Jahre Haft.",
+   "quelle": "planet-wissen.de, stasi-mediathek.de",
+   "links": [
+    "https://www.planet-wissen.de/geschichte/persoenlichkeiten/willy_brandt/spione-ddr-brd-guenter-guillaume-100.html",
+    "https://www.stasi-mediathek.de/fileadmin/pdf/dok1534.pdf"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 1,
+    "karriere": 10,
+    "nachhall": 8
+   }
+  },
+  {
+   "code": "A2",
+   "titel": "Stimmenkauf-Verdacht",
+   "person": "Karl Wienand",
+   "partei": "SPD",
+   "jahr": 1972,
+   "text": "Barzels Misstrauensvotum gegen Brandt scheitert am 27.4.1972 denkbar knapp. CDU-Mann Julius Steiner gesteht später seine Enthaltung - und es entsteht der Verdacht, SPD-Geschäftsführer Wienand habe ihm 50.000 DM angeboten.",
+   "kennzahl": "2 Stimmen fehlten zum Kanzlersturz",
+   "folge": "Der Vorwurf wird nie bewiesen. Jahrzehnte später kommt raus: Wienand war Stasi-Agent - und kassiert in den 90ern in Köln Schmiergelder.",
+   "quelle": "de.wikipedia.org, kas.de",
+   "links": [
+    "https://de.wikipedia.org/wiki/Steiner-Wienand-Aff%C3%A4re",
+    "https://www.kas.de/documents/252038/253252/HPM_16_09_1.pdf/168573f4-07e0-2f65-dade-26f97bd52cf5"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 6,
+    "karriere": 8,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "A3",
+   "titel": "Lauschangriff im Ministerium",
+   "person": "Georg Leber",
+   "partei": "SPD",
+   "jahr": 1978,
+   "text": "Der MAD lauscht ab Juni 1974 heimlich in der Wohnung von Lebers Sekretärin - Verdacht: Spionage für die Stasi. Leber erfährt davon und schweigt, auch die illegale Abhörung des KBW verschweigt er.",
+   "kennzahl": "Aufgedeckt von der Illustrierten Quick",
+   "folge": "Leber tritt am 1.2.1978 zurück und übernimmt politische Verantwortung - gegen den Willen von Kanzler Schmidt.",
+   "quelle": "de.wikipedia.org (Georg Leber)",
+   "links": [
+    "https://de.wikipedia.org/wiki/Georg_Leber"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 1,
+    "karriere": 8,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "A4",
+   "titel": "Der Fall \"IM Sekretär\"",
+   "person": "Manfred Stolpe",
+   "partei": "SPD",
+   "jahr": 1992,
+   "text": "Als Kirchenjurist in der DDR hatte Stolpe jahrzehntelange Kontakte zum Ministerium für Staatssicherheit. Die Opposition fordert seinen Rücktritt: War er Inoffizieller Mitarbeiter \"Sekretär\"?",
+   "kennzahl": "Untersuchungsausschuss tagt ab 1994",
+   "folge": "Stolpe übersteht die Affäre und regiert bis 2002. Das Bundesverfassungsgericht untersagt 2005 die Bezeichnung \"Stasi-Mitarbeiter\".",
+   "quelle": "de.wikipedia.org (Manfred Stolpe)",
+   "links": [
+    "https://de.wikipedia.org/wiki/Manfred_Stolpe"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 1,
+    "karriere": 4,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "B1",
+   "titel": "Kölner Müll-Spendenaffäre",
+   "person": "Klaus Heugel, Norbert Rüther, Karl Wienand",
+   "partei": "SPD",
+   "jahr": 2000,
+   "text": "Um den Bau der Kölner Müllverbrennungsanlage fließen über 20 Mio. DM Schmiergeld. Die Kölner SPD kassiert Barspenden von Firmen, Aufzeichnungen wandern in den Reißwolf.",
+   "kennzahl": "493.000 Euro Sanktion für die SPD",
+   "folge": "Heugel und Rüther werden zu Bewährungsstrafen verurteilt, zwei Manager erhalten Haft. Wienand gesteht teilweise und sitzt 2002 in U-Haft.",
+   "quelle": "de.wikipedia.org, rp-online.de",
+   "links": [
+    "https://de.wikipedia.org/wiki/K%C3%B6lner_Spendenaff%C3%A4re",
+    "https://rp-online.de/panorama/deutschland/kommunalpolitiker-erhalten-bewaehrungsstrafe_aid-11629339",
+    "https://www.ngo-online.de/2005/12/02/nachrichten-koeln/"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 8,
+    "karriere": 7,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "B2",
+   "titel": "Klimmt & der 1. FC Saarbrücken",
+   "person": "Reinhard Klimmt",
+   "partei": "SPD",
+   "jahr": 2000,
+   "text": "Dem Bundesverkehrsminister wird Beihilfe zur Untreue vorgeworfen: Als Vereinspräsident des 1. FC Saarbrücken begleitet er Zahlungen der Caritas-Trägergesellschaft Trier (615.000 DM) an den Klub mit.",
+   "kennzahl": "Strafbefehl: 90 Tagessätze à 300 Mark",
+   "folge": "Klimmt nimmt den Strafbefehl an und tritt am 16.11.2000 zurück - gegen den Rat der Parteispitze, die Einspruch wollte.",
+   "quelle": "tagesspiegel.de, spiegel.de",
+   "links": [
+    "https://www.tagesspiegel.de/kultur/klimmts-rucktritt-vier-tage-im-november-729577.html",
+    "https://www.spiegel.de/politik/deutschland/strafbefehl-kein-einspruch-von-reinhard-klimmt-a-105228.html"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 5,
+    "karriere": 8,
+    "nachhall": 3
+   }
+  },
+  {
+   "code": "B3",
+   "titel": "Scharping-Affäre",
+   "person": "Rudolf Scharping",
+   "partei": "SPD",
+   "jahr": 2002,
+   "text": "Die Bunte zeigt den Verteidigungsminister 2001 im Mallorca-Pool an der Seite von Gräfin Pilati. Kurz vor dem Ende kommt hinzu: 140.000 Mark Honorar von PR-Berater Hunzinger - dem Bundestag verschwiegen.",
+   "kennzahl": "140.000 Mark nie gemeldet",
+   "folge": "Schröder entlässt ihn am 18.7.2002. Bundestagspräsident Thierse fordert Aufklärung der verschwiegenen Nebeneinkünfte.",
+   "quelle": "swr.de, presseportal.de",
+   "links": [
+    "https://www.swr.de/kultur/geschichte/2382001-rudolf-scharping-amuesiert-sich-im-swimmingpool-100.html",
+    "https://www.presseportal.de/pm/6329/366146"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 4,
+    "karriere": 9,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "B4",
+   "titel": "Hartz & die VW-Lustreisen",
+   "person": "Peter Hartz",
+   "partei": "SPD-nah",
+   "jahr": 2007,
+   "text": "Der Namensgeber der Hartz-Gesetze schmiert als VW-Personalvorstand den Betriebsratschef Volkert: Bonuszahlungen, Luxusreisen und Lustreisen für beide - Untreue in 44 Fällen.",
+   "kennzahl": "2 Jahre Bewährung plus 576.000 Euro",
+   "folge": "Hartz gesteht alles und wird am 25.1.2007 vom Landgericht Braunschweig verurteilt. Der Reform-Namensgeber geht als Bestochener in die Geschichte.",
+   "quelle": "spiegel.de, wdr.de",
+   "links": [
+    "https://www.spiegel.de/wirtschaft/schmiergeld-prozess-gericht-verurteilt-hartz-zu-bewaehrungsstrafe-a-462278.html",
+    "https://www1.wdr.de/stichtag/stichtag-peter-hartz-lustreisen-100.html"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 7,
+    "karriere": 7,
+    "nachhall": 8
+   }
+  },
+  {
+   "code": "C1",
+   "titel": "Düsseldorfer Flugaffäre",
+   "person": "Johannes Rau",
+   "partei": "SPD",
+   "jahr": 2000,
+   "text": "Die WestLB zahlt jahrelang private Flüge für NRW-Regierungschefs und Minister - steuerrechtlich fragwürdig, wie der Landesregierung spätestens seit 1997 bekannt ist.",
+   "kennzahl": "Private Flüge auf WestLB-Kosten",
+   "folge": "Die Affäre wird 1999 publik, Steuerfahnder und Landtag ermitteln. Rau bleibt im Amt, die Vorwürfe begleiten ihn ins Bundespräsidentenamt.",
+   "quelle": "de.wikipedia.org, rbb-online.de",
+   "links": [
+    "https://de.wikipedia.org/wiki/D%C3%BCsseldorfer_Flugaff%C3%A4re",
+    "https://www.rbb-online.de/kontraste/ueber_den_tag_hinaus/demokratie/westlb_neue_vorwuerfe.html"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 3,
+    "karriere": 4,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "C2",
+   "titel": "Glogowski-Hochzeit",
+   "person": "Gerhard Glogowski",
+   "partei": "SPD",
+   "jahr": 1999,
+   "text": "Der niedersächsische Ministerpräsident lässt sich die Hochzeitsfeier von Unternehmen mitfinanzieren - Bier und Kaffee gratis. Dazu gesponserte Reisen wie der TUI-Flug zur \"Aida\" in Ägypten.",
+   "kennzahl": "Amtszeit: nur 13 Monate",
+   "folge": "Glogowski tritt im November 1999 zurück. Ab Januar 2000 untersucht ein Ausschuss die Vorwürfe der Vorteilsnahme.",
+   "quelle": "spiegel.de, manager-magazin.de",
+   "links": [
+    "https://www.spiegel.de/politik/deutschland/glogowski-die-vorwuerfe-a-54167.html",
+    "https://www.manager-magazin.de/finanzen/artikel/a-54155.html"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 4,
+    "karriere": 9,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "C3",
+   "titel": "Steinbrück & die Vorträge",
+   "person": "Peer Steinbrück",
+   "partei": "SPD",
+   "jahr": 2013,
+   "text": "Als designierter Kanzlerkandidat muss Steinbrück seine Nebeneinkünfte offenlegen: rund 1,25 Mio. Euro für Vorträge seit 2009 - oft bei Banken, Versicherern und Verbänden.",
+   "kennzahl": "1,25 Mio. Euro für Vorträge",
+   "folge": "Die Debatte über Abgeordneten-Nebenjobs flammt auf; Steinbrück verliert die Wahl gegen Merkel klar.",
+   "quelle": "sueddeutsche.de",
+   "links": [],
+   "werte": {
+    "empoerung": 6,
+    "geld": 4,
+    "karriere": 5,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "C4",
+   "titel": "Dienstwagen in Alicante",
+   "person": "Ulla Schmidt",
+   "partei": "SPD",
+   "jahr": 2009,
+   "text": "Die Gesundheitsministerin lässt ihren Dienstwagen samt Chauffeur in den Spanien-Urlaub nachkommen - knapp 5.000 km Leerfahrt. Aufgedeckt wird die Tour, weil der Wagen geklaut wird.",
+   "kennzahl": "Knapp 10.000 Euro Leerfahrt",
+   "folge": "Der Bundesrechnungshof bescheinigt formal korrekte Nutzung, Steinmeier nimmt sie zurück ins Kompetenzteam. Der Imageschaden bleibt.",
+   "quelle": "stern.de, zeit.de",
+   "links": [
+    "https://www.stern.de/politik/wahl/dienstwagen-von-ulla-schmidt-spanien-tour-kostete-offenbar-10-000-euro-3810410.html",
+    "https://www.zeit.de/online/2009/34/ulla-schmidt-dienstwagen-kosten"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 2,
+    "karriere": 4,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "D1",
+   "titel": "BER-Debakel",
+   "person": "Klaus Wowereit",
+   "partei": "SPD",
+   "jahr": 2014,
+   "text": "Der Hauptstadtflughafen sollte 2011 eröffnen. Stattdessen: Brandschutz-Chaos, endlos verschobene Termine, Kosten jenseits der 7 Mrd. Euro. Wowereit steht als BER-Aufsichtsratschef mit in der Verantwortung.",
+   "kennzahl": "9 Jahre Verspätung: Eröffnung 2020",
+   "folge": "Wowereit kündigt am 26.8.2014 seinen Rücktritt zum Jahresende an. Der BER eröffnet erst am 31.10.2020.",
+   "quelle": "zeit.de, vorwaerts.de",
+   "links": [
+    "https://www.zeit.de/politik/deutschland/2014-08/berlins-regierender-buergermeister-wowereit-will-zuruecktreten",
+    "https://vorwaerts.de/parteileben/wowereit-kundigt-seinen-rucktritt"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 9,
+    "karriere": 6,
+    "nachhall": 8
+   }
+  },
+  {
+   "code": "D2",
+   "titel": "Nürburgring-Pleite",
+   "person": "Kurt Beck",
+   "partei": "SPD",
+   "jahr": 2013,
+   "text": "Rheinland-Pfalz pumpt mindestens 330 Mio. Euro in einen Freizeitpark am Nürburgring und lässt sich auf dubiose Finanzvermittler ein. Die GmbH ist pleite, das Geld ist weg.",
+   "kennzahl": "Mindestens 330 Mio. Euro Steuergeld",
+   "folge": "Finanzminister Deubel tritt 2012 zurück und wird wegen Untreue angeklagt. Beck entschuldigt sich im Landtag und tritt im Januar 2013 zurück.",
+   "quelle": "rp-online.de, swr.de",
+   "links": [
+    "https://rp-online.de/politik/deutschland/becks-persoenliches-debakel-am-nuerburgring_aid-14120147",
+    "https://www.swr.de/swraktuell/rheinland-pfalz/koblenz/nuerburgring-podcast-kurt-beck-interview-100.html"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 9,
+    "karriere": 7,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "D3",
+   "titel": "Lausitzring-Pleite",
+   "person": "Manfred Stolpe",
+   "partei": "SPD",
+   "jahr": 2002,
+   "text": "Brandenburg zahlt 123 der 150 Mio. Euro Baukosten für den EuroSpeedway Lausitz - Stolpe eröffnet ihn 2000 als Prestigeobjekt. Die Formel 1 kommt nie, der Betreiber geht pleite.",
+   "kennzahl": "123 von 150 Mio. Euro trug das Land",
+   "folge": "Nach der Insolvenz übernimmt ein Förderverein die Strecke, das Land schießt weitere Millionen nach. Die Formel 1 bleibt der Lausitz fern.",
+   "quelle": "spiegel.de, motorsport-total.com",
+   "links": [
+    "https://www.motorsport-total.com/formel-1/news/lausitzring-macht-auch-ohne-die-formel-1-weiter-04031802",
+    "https://www.faz.net/aktuell/gesellschaft/insolvenz-dem-eurospeedway-lausitz-geht-der-sprit-aus-147864.html"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 8,
+    "karriere": 3,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "D4",
+   "titel": "G20-Gipfel",
+   "person": "Olaf Scholz",
+   "partei": "SPD",
+   "jahr": 2017,
+   "text": "Der Hamburger Bürgermeister verspricht: Den Steuerzahler kostet der G20-Gipfel nichts. Am Ende sind es mindestens 130 Mio. Euro - dazu Ausschreitungen und die Debatte um Polizeigewalt.",
+   "kennzahl": "\"Nichts\" wurde mindestens 130 Mio. Euro",
+   "folge": "Ein Sonderausschuss der Bürgerschaft untersucht Einsatz und Kosten ab August 2017. Scholz bleibt unbeschadet und wird Bundeskanzler.",
+   "quelle": "fr.de, zeit.de",
+   "links": [
+    "https://www.fr.de/politik/kostet-g20-gipfel-11022852.html",
+    "https://www.zeit.de/2017/45/g20-gipfel-kosten-hamburg"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 8,
+    "karriere": 5,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "E1",
+   "titel": "Cum-Ex / Warburg",
+   "person": "Olaf Scholz",
+   "partei": "SPD",
+   "jahr": 2020,
+   "text": "Nach Treffen des Hamburger Bürgermeisters mit den Eigentümern der Warburg-Bank lässt das Finanzamt 2016 eine Rückforderung verjähren. Scholz bestreitet Einflussnahme, beruft sich auf Erinnerungslücken.",
+   "kennzahl": "47 Mio. Euro Steuern verjährt",
+   "folge": "Hamburger U-Ausschuss ab 2020. Die Bank muss später per Gericht über 176 Mio. Euro zurückzahlen.",
+   "quelle": "rheinpfalz.de, nordkurier.de",
+   "links": [
+    "https://www.rheinpfalz.de/politik_artikel,-der-kanzler-und-seine-erinnerungsl%C3%BCcken-_arid,5394070.html",
+    "https://www.nordkurier.de/politik/cum-ex-affaere-widersprach-sich-scholz-bei-befragungen-1540179"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 7,
+    "karriere": 3,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "E2",
+   "titel": "Wirecard",
+   "person": "Olaf Scholz (Finanzaufsicht)",
+   "partei": "SPD",
+   "jahr": 2020,
+   "text": "Der DAX-Konzern gesteht: 1,9 Mrd. Euro aus der Bilanz sind nicht auffindbar. Die dem Finanzministerium unterstellte BaFin hatte Warnungen jahrelang nicht verfolgt.",
+   "kennzahl": "1,9 Mrd. Euro Luftbuchungen",
+   "folge": "U-Ausschuss 2020-21. Opposition sieht kollektives Aufsichtsversagen und Scholz politisch verantwortlich.",
+   "quelle": "beck-aktuell.de, abendzeitung-muenchen.de",
+   "links": [
+    "https://www.beck-aktuell.de/heute-im-recht/rechtspolitik-gesetzgebung/opposition-sieht-kollektives-aufsichtsversagen-bei-wirecard-2021-06-07",
+    "https://www.abendzeitung-muenchen.de/politik/fall-wirecard-finanzminister-scholz-unter-druck-art-707567"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 10,
+    "karriere": 3,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "E3",
+   "titel": "Maaßen-Beförderung",
+   "person": "Andrea Nahles",
+   "partei": "SPD",
+   "jahr": 2018,
+   "text": "Nach Maaßens umstrittenen Chemnitz-Äußerungen will die SPD-Chefin den Verfassungsschutzchef loswerden. Die Einigung mit Seehofer: Maaßen wird \"versetzt\" - und als Innenstaatssekretär sogar befördert.",
+   "kennzahl": "Nach 5 Tagen kippt der Deal",
+   "folge": "Maaßen kommt in den einstweiligen Ruhestand. Nahles verteidigt sich: Sie war nicht bereit, \"wegen einer solchen Personalie die Regierung zu stürzen\".",
+   "quelle": "spiegel.de, zeit.de",
+   "links": [],
+   "werte": {
+    "empoerung": 9,
+    "geld": 1,
+    "karriere": 5,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "E4",
+   "titel": "Wahlchaos Berlin",
+   "person": "Andreas Geisel",
+   "partei": "SPD",
+   "jahr": 2021,
+   "text": "Bei der Abgeordnetenhauswahl im September 2021 gehen in Dutzenden Wahllokalen die Stimmzettel aus, Wahllokale schließen vorzeitig. Der Verfassungsgerichtshof erklärt die komplette Wahl für ungültig.",
+   "kennzahl": "Erste komplette Wiederholung einer Landtagswahl",
+   "folge": "Am 12.2.2023 wählt ganz Berlin neu. Ex-Innensenator Geisel verliert bei der Wiederholung sein Direktmandat.",
+   "quelle": "berlin.de, bundesverfassungsgericht.de",
+   "links": [
+    "https://www.berlin.de/sen/stadt/presse/pressemeldungen/2022/pressemitteilung.1250019.php",
+    "https://www.bundesverfassungsgericht.de/SharedDocs/Entscheidungen/DE/2023/01/rs20230125a_2bvr218922.html"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 2,
+    "karriere": 6,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "F1",
+   "titel": "Schröder & Gazprom",
+   "person": "Gerhard Schröder",
+   "partei": "SPD",
+   "jahr": 2005,
+   "text": "Kaum aus dem Amt, wechselt der Altkanzler zu Gazprom: Aufsichtsratschef der Nord Stream AG, später Rosneft, dazu Freundschaft mit Putin. Für die SPD wird er zum Dauerbelastungstest.",
+   "kennzahl": "Aufsichtsrat: Nord Stream AG, Rosneft",
+   "folge": "2022 streicht der Bundestag seine Altkanzler-Privilegien, das Büro ist weg. 2023 scheitert das SPD-Ausschlussverfahren.",
+   "quelle": "tagesspiegel.de, fr.de",
+   "links": [
+    "https://www.tagesspiegel.de/politik/schroder-gibt-aufsichtsratsposten-bei-olkonzern-rosneft-auf-8129683.html",
+    "https://www.fr.de/politik/gerhard-schroeder-privilegien-altkanzler-verlust-juristisch-vorgehen-news-zr-9155763"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 6,
+    "karriere": 2,
+    "nachhall": 10
+   }
+  },
+  {
+   "code": "F2",
+   "titel": "Klimastiftung MV",
+   "person": "Manuela Schwesig",
+   "partei": "SPD",
+   "jahr": 2021,
+   "text": "Um US-Sanktionen gegen Nord Stream 2 zu unterlaufen, gründet das Land die \"Stiftung Klima- und Umweltschutz MV\". Die Nord Stream 2 AG stiftet 20 Mio. Euro, Stiftungstöchter bauen die Pipeline zu Ende.",
+   "kennzahl": "20 Mio. Euro von der Nord Stream 2 AG",
+   "folge": "Ein Schweriner Untersuchungsausschuss tagt seit 2022; Schröder, Schwesig und Scholz sind als Zeugen geladen. Die Pipeline ging nie in Betrieb.",
+   "quelle": "de.wikipedia.org, ndr.de",
+   "links": [
+    "https://de.wikipedia.org/wiki/Stiftung_Klima-_und_Umweltschutz_MV"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 6,
+    "karriere": 4,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "F3",
+   "titel": "Steinmeiers Russland-Nähe",
+   "person": "Frank-Walter Steinmeier",
+   "partei": "SPD",
+   "jahr": 2022,
+   "text": "Als Schröders Kanzleramtschef und später als Außenminister trat Steinmeier für Nord Stream und die engen Gas-Geschäfte mit Moskau ein. Nach dem Angriffskrieg bricht Kritik über den Bundespräsidenten herein.",
+   "kennzahl": "\"Da habe ich mich geirrt\" (April 2022)",
+   "folge": "Steinmeier räumt öffentlich ein, sich in Putin geirrt zu haben - Nord Stream 2 sei \"eindeutig ein Fehler\" gewesen.",
+   "quelle": "zeit.de, sueddeutsche.de",
+   "links": [
+    "https://www.zeit.de/politik/deutschland/2022-04/frank-walter-steinmeier-fehler-russland-ukraine",
+    "https://www.sueddeutsche.de/politik/steinmeier-selbstkritik-russland-1.5560571"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 3,
+    "karriere": 2,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "F4",
+   "titel": "Gabriel & die Gazprom-Lobby",
+   "person": "Sigmar Gabriel",
+   "partei": "SPD",
+   "jahr": 2016,
+   "text": "Als Wirtschaftsminister segnet Gabriel 2015 den Verkauf deutscher Gasspeicher an Gazprom ab und verteidigt Nord Stream 2 gegen US-Sanktionsdrohungen. Später stärkt er als Außenminister das Projekt weiter.",
+   "kennzahl": "2015: Gazprom übernimmt deutsche Gasspeicher",
+   "folge": "2022 legt die Correctiv-Recherche \"Gazprom-Lobby\" seine Russland-Kontakte offen; Gabriel wehrt sich juristisch gegen Formulierungen.",
+   "quelle": "thb.info, correctiv.org",
+   "links": [
+    "https://www.thb.info/rubriken/maritime-logistik/detail/news/aussenminister-staerkt-nord-stream-2.html"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 4,
+    "karriere": 2,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "G1",
+   "titel": "Wahl-Debakel in Kiel",
+   "person": "Heide Simonis",
+   "partei": "SPD",
+   "jahr": 2005,
+   "text": "Viermal stellt sich Simonis im Kieler Landtag zur Wahl - viermal fehlt die nötige Stimme, mutmaßlich aus den eigenen Reihen. Die Fraktion zerbricht an der Frage: Wer war es?",
+   "kennzahl": "4 Wahlgänge, jedes Mal fehlte 1 Stimme",
+   "folge": "Simonis zieht ihre Kandidatur zurück, ihre Karriere endet. Der \"Verräter\" aus den eigenen Reihen wurde nie sicher identifiziert.",
+   "quelle": "taz.de, spiegel.de",
+   "links": [
+    "https://taz.de/Simonis-zehn-Jahre-nach-Heidemord/!5016498/",
+    "https://www.spiegel.de/politik/deutschland/simonis-debakel-demontage-einer-landesmutter-a-346967.html"
+   ],
+   "werte": {
+    "empoerung": 6,
+    "geld": 1,
+    "karriere": 9,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "G2",
+   "titel": "Ypsilanti-Wortbruch",
+   "person": "Andrea Ypsilanti",
+   "partei": "SPD",
+   "jahr": 2008,
+   "text": "Trotz Wahlkampf-Versprechen, niemals mit Stimmen der Linken zu regieren, plant Ypsilanti eine Minderheitsregierung in Hessen. Vier eigene Abgeordnete verweigern ihr die Gefolgschaft.",
+   "kennzahl": "Die geplante Wahl fand nie statt",
+   "folge": "Ypsilanti tritt als Fraktions- und Landesvorsitzende zurück, Hessen wählt im Januar 2009 neu. Koch bleibt Ministerpräsident.",
+   "quelle": "de.wikipedia.org (Andrea Ypsilanti)",
+   "links": [
+    "https://de.wikipedia.org/wiki/Andrea_Ypsilanti",
+    "https://de.wikipedia.org/wiki/Dagmar_Metzger"
+   ],
+   "werte": {
+    "empoerung": 7,
+    "geld": 1,
+    "karriere": 9,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "G3",
+   "titel": "Hamburger Polizeiskandal",
+   "person": "Werner Hackmann",
+   "partei": "SPD",
+   "jahr": 1994,
+   "text": "Auf der Hamburger Wache 11 misshandeln Beamte über Jahre Gefangene. Als Innensenator Hackmann vom Ausmaß erfährt, zieht er die Konsequenz und tritt zurück.",
+   "kennzahl": "Rücktritt, sobald er erfuhr",
+   "folge": "Auch Innenstaatsrat und Landespolizeidirektor räumen ihre Posten. Hamburg ringt jahrelang um Aufarbeitung.",
+   "quelle": "de.wikipedia.org (Hamburger Polizeiskandal)",
+   "links": [
+    "https://de.wikipedia.org/wiki/Hamburger_Polizeiskandal",
+    "https://de.wikipedia.org/wiki/Werner_Hackmann"
+   ],
+   "werte": {
+    "empoerung": 9,
+    "geld": 1,
+    "karriere": 6,
+    "nachhall": 5
+   }
+  },
+  {
+   "code": "G4",
+   "titel": "AWO-Affäre",
+   "person": "Peter Feldmann",
+   "partei": "SPD",
+   "jahr": 2022,
+   "text": "Die Frankfurter AWO sammelt Spenden für Feldmanns Wahlkampf, seine Frau bekommt einen überbezahlten Posten als Kita-Leiterin plus Dienstwagen. Der OB weigert sich zurückzutreten - also wählt die Stadt ab.",
+   "kennzahl": "95,1 Prozent für die Abwahl",
+   "folge": "Ende 2022 verurteilt ihn das Landgericht Frankfurt wegen Vorteilsnahme zu 120 Tagessätzen à 175 Euro, der BGH verwirft die Revision.",
+   "quelle": "lto.de, zeit.de",
+   "links": [
+    "https://www.lto.de/recht/nachrichten/n/lg-frankfurt-ffm-awo-peter-feldmann-korruption",
+    "https://www.zeit.de/politik/deutschland/2022-11/peter-feldmann-buergerentscheid-frankfurt-abwahl"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 5,
+    "karriere": 9,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "H1",
+   "titel": "Der erfundene Lebenslauf",
+   "person": "Petra Hinz",
+   "partei": "SPD",
+   "jahr": 2016,
+   "text": "Jahrelang behauptet die Essener Bundestagsabgeordnete: Abitur und abgeschlossenes Jurastudium. Beides ist erfunden - in den Abiturlisten von 1984 taucht ihr Name nirgends auf.",
+   "kennzahl": "Kein Abitur, kein Jura - alles erfunden",
+   "folge": "Hinz legt ihr Mandat nieder und bittet um Entschuldigung. Die Essener SPD hatte zuvor den sofortigen Rücktritt gefordert.",
+   "quelle": "zeit.de, lto.de",
+   "links": [
+    "https://www.zeit.de/politik/deutschland/2016-07/essen-petra-hinz-lebenslauf-erfunden",
+    "https://www.lto.de/recht/nachrichten/n/petra-hinz-spd-lebenslauf-gefaelscht-abitur-juristisches-examen"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 1,
+    "karriere": 9,
+    "nachhall": 4
+   }
+  },
+  {
+   "code": "H2",
+   "titel": "Sarrazin-Buch",
+   "person": "Thilo Sarrazin",
+   "partei": "SPD",
+   "jahr": 2010,
+   "text": "Zuwanderung, Bildung, Erbanlagen: Der Bundesbank-Vorstand tritt mitten im Amt mit \"Deutschland schafft sich ab\" eine bundesweite Empörungswelle los.",
+   "kennzahl": "Über 1 Million verkaufte Exemplare",
+   "folge": "Sarrazin muss den Bundesbank-Posten räumen, die SPD leitet ein Ausschlussverfahren ein - 2020 tritt er selbst aus der Partei aus.",
+   "quelle": "de.wikipedia.org (Thilo Sarrazin)",
+   "links": [
+    "https://de.wikipedia.org/wiki/Thilo_Sarrazin",
+    "https://de.wikipedia.org/wiki/Deutschland_schafft_sich_ab"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 1,
+    "karriere": 5,
+    "nachhall": 7
+   }
+  },
+  {
+   "code": "H3",
+   "titel": "Edathy-Affäre",
+   "person": "Sebastian Edathy",
+   "partei": "SPD",
+   "jahr": 2014,
+   "text": "Ende Januar 2014 wird bekannt: Gegen den früheren Chef des NSU-Untersuchungsausschusses wird wegen des Erwerbs und Besitzes jugendpornografischer Dateien ermittelt.",
+   "kennzahl": "Eingestellt gegen 5.000 Euro Auflage",
+   "folge": "Edathy legt sein Mandat nieder und gesteht vor Gericht; 2015 wird das Verfahren gegen die Auflage eingestellt. Die Schiedskommission lässt ein Ausschlussverfahren ruhen.",
+   "quelle": "deutschlandfunk.de, de.wikipedia.org",
+   "links": [
+    "https://www.deutschlandfunk.de/kinderpornografie-edathy-prozess-eingestellt-100.html",
+    "https://de.wikipedia.org/wiki/Edathy-Aff%C3%A4re"
+   ],
+   "werte": {
+    "empoerung": 10,
+    "geld": 1,
+    "karriere": 10,
+    "nachhall": 6
+   }
+  },
+  {
+   "code": "H4",
+   "titel": "Lambrecht-Auftritt",
+   "person": "Christine Lambrecht",
+   "partei": "SPD",
+   "jahr": 2023,
+   "text": "Ihr Silvestervideo verpackt Kriegsrede zwischen Feuerwerk und Privat-Grüßen, zuvor flog ihr erwachsener Sohn im Bundeswehr-Hubschrauber zum Urlaub mit.",
+   "kennzahl": "Rücktritt nach 13 Monaten im Amt",
+   "folge": "Am 16.1.2023 tritt Lambrecht zurück; Boris Pistorius wird ihr Nachfolger.",
+   "quelle": "sueddeutsche.de, rp-online.de",
+   "links": [
+    "https://www.sueddeutsche.de/politik/lambrecht-video-silvester-verteidigungsministerin-knalleffekt-1.5725689",
+    "https://rp-online.de/politik/deutschland/tritt-verteidigungsministerin-christine-lambrecht-zurueck_aid-8295209"
+   ],
+   "werte": {
+    "empoerung": 8,
+    "geld": 1,
+    "karriere": 7,
+    "nachhall": 4
+   }
+  }
+ ]
+}
+</script>
+
+<script>
+(function(){
+  var D = JSON.parse(document.getElementById('daten').textContent);
+  var stage = document.getElementById('stage');
+  var cur = -1;
+  var W = [['empoerung','Empörung'],['geld','Geld im Spiel'],['karriere','Karriere-Knick'],['nachhall','Nachhall']];
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function bar(v){var h='';for(var i=0;i<10;i++)h+='<i'+(i<v?' class="on"':'')+'></i>';return '<div class="bar" aria-hidden="true">'+h+'</div>';}
+  function render(i){
+    var k = D.karten[i], g = D.gruppen[k.code.charAt(0)] || {name:'',farbe:'#4B4F58'};
+    var rows = '<div class="row"><div class="lbl">Jahr</div><div class="lbl">älter sticht</div><div class="val">'+esc(k.jahr)+'</div></div>';
+    W.forEach(function(w){var v=k.werte[w[0]];rows+='<div class="row"><div class="lbl">'+w[1]+'</div>'+bar(v)+'<div class="val" aria-label="'+w[1]+' '+v+' von 10">'+v+'</div></div>';});
+    var link = k.links && k.links[0] ? '<a href="'+esc(k.links[0])+'" target="_blank" rel="noopener">'+esc(k.quelle)+'</a>' : esc(k.quelle);
+    stage.innerHTML =
+      '<article class="card in" style="--g:'+esc(g.farbe)+'">'+
+        '<header class="head"><div class="code">'+esc(k.code)+'</div><div class="grp">'+esc(g.name)+'</div></header>'+
+        '<div class="main">'+
+          '<div><h1>'+esc(k.titel)+'</h1><div class="who"><div class="person">'+esc(k.person)+'</div><div class="party">'+esc(k.partei)+'</div></div></div>'+
+          '<p>'+esc(k.text)+'</p>'+
+          '<div class="kz">'+esc(k.kennzahl)+'</div>'+
+          '<div class="stats">'+rows+'</div>'+
+          '<p><span class="b">Folge: </span>'+esc(k.folge)+'</p>'+
+          '<div class="foot"><div>Quelle: '+link+'</div><div class="hint">'+(i+1)+'/'+D.karten.length+'</div></div>'+
+        '</div>'+
+      '</article>';
+    document.title = k.code+' '+k.titel+' | Skandal-Quartett';
+    try{ document.querySelector('meta[name=theme-color]').setAttribute('content', g.farbe); }catch(e){}
+  }
+  function next(){
+    var n = D.karten.length; if(!n) return;
+    var i; do{ i = Math.floor(Math.random()*n); } while(n>1 && i===cur);
+    cur = i; render(i);
+  }
+  // Doppeltipp (Touch) und Doppelklick (Maus), ohne Doppel-Auslösung
+  var last = 0, lx = 0, ly = 0;
+  stage.addEventListener('pointerup', function(e){
+    if(e.target.closest('a')) return;
+    var t = Date.now();
+    if(t - last < 350 && Math.abs(e.clientX-lx) < 40 && Math.abs(e.clientY-ly) < 40){ last = 0; next(); }
+    else { last = t; lx = e.clientX; ly = e.clientY; }
+  });
+  stage.addEventListener('dblclick', function(e){ e.preventDefault(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key===' '||e.key==='Enter'||e.key==='ArrowRight'){ e.preventDefault(); next(); }
+  });
+  next();
+})();
+</script>
+</body>
+</html>
